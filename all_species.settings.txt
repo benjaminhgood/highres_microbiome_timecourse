@@ -1,0 +1,45 @@
+######################################################
+#
+# Make a copy of this file and edit it to your liking
+#
+######################################################
+
+# Which population to plot
+species_names = parse_midas_data.parse_good_species_list()
+
+#species_names = ['Bacteroides_vulgatus_57955', 'Bacteroides_coprocola_61586', 'Bacteroides_uniformis_57318']
+
+
+# Output filename
+filename = parse_midas_data.analysis_directory+'all_species_timecourse.png'
+
+# Mininum coverage for frequency estimation vs interpolation 
+min_coverage = 20
+
+
+####################################################################
+#
+#  Function controlling which mutations are colored
+#
+#      Returns: true for colored
+#               false for not colored
+#
+####################################################################
+def color_condition(population_idx, chromosome, location, gene_name, variant_type, freqs, interpolated_freqs):
+    
+    
+    #condition = (freqs.max()-freqs.min() > 0.8)
+    condition = (freqs[0]<0.05)*(freqs[1]<0.05)*((freqs.max()-freqs.min()) > 0.5)
+    # Examples:
+    # 
+    # Mutation is in the majority at the end of the experiment
+    # condition = f(60000) > 0.5
+    #
+    # Mutation is a structural variant in the nadR gene
+    # condition = (gene_name == 'nadR') and var_type='sv'
+    #
+    # Mutation is in one of the mut* genes
+    # condition = gene_name.startswith('mut')
+    # ... 
+    
+    return condition
