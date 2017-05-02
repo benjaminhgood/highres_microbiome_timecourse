@@ -7,14 +7,9 @@
 # Which population to plot
 species_names = parse_midas_data.parse_good_species_list()
 
-#species_names = ['Bacteroides_vulgatus_57955', 'Bacteroides_coprocola_61586', 'Bacteroides_uniformis_57318']
-
 
 # Output filename
 filename = parse_midas_data.analysis_directory+'all_species_timecourse.png'
-
-# Mininum coverage for frequency estimation vs interpolation 
-min_coverage = 20
 
 
 ####################################################################
@@ -25,7 +20,7 @@ min_coverage = 20
 #               false for not colored
 #
 ####################################################################
-def color_condition(population_idx, chromosome, location, gene_name, variant_type, freqs, interpolated_freqs):
+def color_condition(population_idx, chromosome, location, gene_name, variant_type, times, freqs, depths):
     
     
     #condition = (freqs.max()-freqs.min() > 0.8)

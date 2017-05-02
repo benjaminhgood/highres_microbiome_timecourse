@@ -42,8 +42,17 @@ sample_time_map = parse_timecourse_data.parse_sample_time_map()
 theory_ts = numpy.array([t for t in sorted(set(sample_time_map.values()))])
 theory_ts = theory_ts[theory_ts>0]
 
+species_coverage_matrix, samples, species = parse_midas_data.parse_global_marker_gene_coverages()
+species_idx_map = {species[i]: i for i in xrange(0,len(species))}
+sample_time_map = parse_timecourse_data.parse_sample_time_map()
 
+species_times, species_time_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, samples)
 
+species_coverage_matrix = species_coverage_matrix[:,species_time_idxs]
+species_freq_matrix = species_coverage_matrix*1.0/(species_coverage_matrix.sum(axis=0))
+
+desired_samples = numpy.array(samples)[species_time_idxs]
+    
 
 PLOT_FMAJOR=None
 PLOT_FMINOR=None
@@ -71,13 +80,12 @@ mpl.rcParams['legend.frameon']  = False
 mpl.rcParams['legend.fontsize']  = 'small'
 
 fig_width = 7
-fig_height = 1.7*(len(species_names))
+fig_height = 1.7*(2*len(species_names))
 
-fig, axes = plt.subplots(len(species_names),sharex=True,sharey=True,figsize=(fig_width, fig_height))
+fig, axes = plt.subplots(2*len(species_names),sharex=True,sharey=False,figsize=(fig_width, fig_height))    
 
-if len(species_names)<2:
-    axes = [axes]
-
+#if len(species_names)<2:
+#    axes = [axes]
 
 freq_axis = None
     
@@ -88,9 +96,14 @@ for species_idx in xrange(0,len(species_names)):
     
     sys.stderr.write("Processing %s...\n" % species_name)
     
-    species_coverage_matrix, samples, species = parse_midas_data.parse_global_marker_gene_coverages()
-    sample_ts, sample_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, samples)
-    desired_samples = numpy.array(samples)[sample_idxs]
+    
+    # Load gene coverage information for species_name
+    sys.stderr.write("Loading pangenome data for %s...\n" % species_name)
+    gene_samples, gene_names, gene_presence_matrix, gene_depth_matrix, marker_coverages, gene_reads_matrix = parse_midas_data.parse_pangenome_data(species_name,allowed_samples=desired_samples)
+    sys.stderr.write("Done!\n")
+    marker_coverage_times, marker_coverage_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, gene_samples)
+
+    marker_coverages = marker_coverages[marker_coverage_idxs]
     
     times = []
     alt_matrix = []
@@ -141,12 +154,38 @@ for species_idx in xrange(0,len(species_names)):
 
 
     # set up figure axis
-    freq_axis = axes[species_idx]
+    
+    species_freq_axis = axes[2*species_idx]
+    if additional_titles[species_idx]=="":
+        title_text = '%s abundance' % species_name
+    else:
+        title_text = '%s %s coverage' % (species_name, additional_titles[species_idx])  
+    species_freq_axis.set_title(title_text,loc='right',fontsize=6)
+        
+    species_freq_axis.set_ylabel('Species abundance')
+    species_freq_axis.spines['top'].set_visible(False)
+    species_freq_axis.get_xaxis().tick_bottom()
+    
+    depth_axis = species_freq_axis.twinx()
+    depth_axis.set_ylabel('Marker coverage',color='#007ccd',rotation=270,labelpad=10)
+    for tl in depth_axis.get_yticklabels():
+        tl.set_color('#007ccd')
+    depth_axis.spines['top'].set_visible(False)
+    depth_axis.spines['right'].set_color('#007ccd')
+    species_freq_axis.spines['right'].set_color('#007ccd')
+    depth_axis.tick_params(axis='y', colors='#007ccd')
+    depth_axis.tick_params(axis='y', which='minor', colors='#007ccd')
+    
+    depth_axis.set_ylim([2,2e03])
+    depth_axis.set_xlim([0,160])   
+    
+    
+    freq_axis = axes[2*species_idx+1]
     
     if additional_titles[species_idx]=="":
-        title_text = species_name
+        title_text = '%s diversity' % species_name
     else:
-        title_text = '%s %s' % (species_name, additional_titles[species_idx])  
+        title_text = '%s %s diversity' % (species_name, additional_titles[species_idx])  
     freq_axis.set_title(title_text,loc='right',fontsize=6)
         
     freq_axis.set_ylabel('Allele frequency, $f(t)$')
@@ -155,9 +194,24 @@ for species_idx in xrange(0,len(species_names)):
     freq_axis.get_xaxis().tick_bottom()
     freq_axis.get_yaxis().tick_left()
     
+    freq_axis.set_xlim([0,160])   
+    freq_axis.set_ylim([0,1.02])
+    
     num_colored_mutations = 0
     num_total_mutations = 0
 
+    # Plot species abundance and marker coverage
+    species_freqs = species_freq_matrix[species_idx_map[species_name],:]
+    
+    depth_axis.semilogy(marker_coverage_times[marker_coverages>0], marker_coverages[marker_coverages>0],'.-',color='#007ccd',markersize=3)
+    species_freq_axis.semilogy(species_times[species_freqs>0], species_freqs[species_freqs>0],'k.-',markersize=3)
+    
+    if species_freqs[species_freqs>0].min() < 1e-04:
+        print species_freqs[species_freqs>0].min()
+        species_freq_axis.set_ylim(bottom=1e-04)
+        
+    species_freq_axis.set_xlim([0,160])   
+    
     
     if len(alt_matrix)==0:
         continue
@@ -179,6 +233,7 @@ for species_idx in xrange(0,len(species_names)):
         
         masked_times = times[depths>0]
         masked_freqs = freqs[depths>0]
+        masked_depths = depths[depths>0]
         
         
         if masked_freqs[0]>0.5:
@@ -189,7 +244,7 @@ for species_idx in xrange(0,len(species_names)):
          
         interpolation_function = timecourse_utils.create_interpolation_function(masked_times, masked_freqs)
         
-        if color_condition(species_idx, chromosome, location, gene_name, variant_type, masked_freqs, interpolation_function):
+        if color_condition(species_idx, chromosome, location, gene_name, variant_type, masked_times, masked_freqs, masked_depths):
         
             # One of the colored ones!
             num_colored_mutations+=1
@@ -210,7 +265,6 @@ for species_idx in xrange(0,len(species_names)):
     
 freq_axis.set_xlabel('Time, $t$ (days)')
 
-freq_axis.set_ylim([0,1.02])
 freq_axis.set_xlim([0,160])   
  
 sys.stderr.write("Saving final PNG image...\t")

@@ -5,12 +5,12 @@
 ######################################################
 
 # Which population to plot
-species_names = ['Bacteroides_vulgatus_57955']
+species_names = ['Bacteroides_vulgatus_57955', 'Bacteroides_vulgatus_57955','Bacteroides_vulgatus_57955','Bacteroides_vulgatus_57955']
 # Alternative: can access entire list using function:
 #species_names = parse_midas_data.parse_good_species_list()
 
 # Output filename (alter as needed)
-filename = parse_midas_data.analysis_directory+'example_timecourse.png'
+filename = parse_midas_data.analysis_directory+'Bacteroides_vulgatus_57955_timecourse.png'
 
 ####################################################################
 #
@@ -26,9 +26,17 @@ def color_condition(population_idx, chromosome, location, gene_name, variant_typ
     
     # First two conditions require mutation to start at low frequency
     # i.e., to focus on "de novo" mutations
-    condition = freqs[0]<0.5
-    condition = condition and (freqs[1]<0.05)
-    # Next condition requires a large frequency change
-    condition = condition and ((freqs.max()-freqs.min()) > 0.5)
     
+    if population_idx==0:
+        condition = freqs[-2]>0.5
+    elif population_idx==1:
+        condition = (freqs[-2]>0.3)*(freqs[-2]<0.5)*(freqs[-1]<0.25)
+    elif population_idx==2:
+        condition = (freqs[-2]>0.3)*(freqs[-2]<0.5)*(freqs[-1]>0.25)
+    elif population_idx==3:
+        condition = (freqs[-2]>0.15)*(freqs[-2]<0.25)
+        #print chromosome, location, gene_name, variant_type
+    else:
+        condition = False
+        
     return condition
