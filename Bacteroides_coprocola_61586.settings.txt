@@ -5,7 +5,9 @@
 ######################################################
 
 # Which population to plot
-species_names = ['Bacteroides_coprocola_61586', 'Bacteroides_coprocola_61586', 'Bacteroides_coprocola_61586','Bacteroides_coprocola_61586']
+species_names = ['Bacteroides_coprocola_61586','Bacteroides_coprocola_61586', 'Bacteroides_coprocola_61586', 'Bacteroides_coprocola_61586', 'Bacteroides_coprocola_61586', 'Bacteroides_coprocola_61586','Bacteroides_coprocola_61586','Bacteroides_coprocola_61586','Bacteroides_coprocola_61586']
+additional_titles = ['early fixers', 'late fixers','LF.1', 'LF.2', 'LF.3', 'initial contenders','late risers','middle fluctuators', 'shit in the middle']
+
 # Alternative: can access entire list using function:
 #species_names = parse_midas_data.parse_good_species_list()
 
@@ -25,20 +27,39 @@ min_coverage=20
 def color_condition(population_idx, chromosome, location, gene_name, variant_type, times, freqs, depths):
 
     idx_80 = numpy.fabs(times-81).argmin()
-
+    idx_10 = numpy.fabs(times-11).argmin()
+    idx_36 = numpy.fabs(times-36).argmin()
+    idx_47 = numpy.fabs(times-47).argmin()
+    idx_75 = numpy.fabs(times-75).argmin()
     # don't use interpolated freqs yet.    
     
     # First two conditions require mutation to start at low frequency
     # i.e., to focus on "de novo" mutations
     
     if population_idx==0:
-        condition = freqs[idx_80]>0.8
+        # things that appear to fix early
+        condition = (freqs[idx_80]>0.8)*(freqs[-1]>0.8)*(freqs[idx_36]>0.8)
+        if condition:
+            print chromosome, location, gene_name, variant_type
     elif population_idx==1:
-        condition = (freqs[idx_80]>0.6)*(freqs[idx_80]<0.8)
+        # things that eventually fix (subclade of early fixers?)
+        condition = (freqs[idx_80]>0.8)*(freqs[-1]>0.8)*(freqs[idx_36]<0.8)
     elif population_idx==2:
-        condition = (freqs[idx_80]>0.2)*(freqs[idx_80]<0.6)
-    elif population_idx==2:
-        condition = (freqs[idx_80]<0.15)*(freqs[-1]>0.2)
+        condition = (freqs[idx_80]>0.6)*(freqs[-1]<0.8)*(freqs[idx_47]>0.35)*(freqs[idx_75]>0.4)
+    elif population_idx==3:
+        condition = (freqs[idx_80]>0.6)*(freqs[-1]<0.8)*(freqs[idx_47]>0.35)*(freqs[idx_75]<0.4)
+    elif population_idx==4:
+        condition = (freqs[idx_80]>0.6)*(freqs[-1]<0.8)*(freqs[idx_47]<0.3)
+    elif population_idx==5:
+        condition = (freqs[idx_10]>0.6)*(freqs[idx_36]>0.6)*(freqs[-1]<0.5)
+        if condition:
+            print chromosome, location, gene_name, variant_type
+    elif population_idx==6:
+        condition = (freqs[idx_36:idx_80+1]<0.15).all()*(freqs[-1]>0.2)
+    elif population_idx==7:
+        condition = (freqs[idx_80]>0.3)*(freqs[idx_80]<0.6)*(freqs[idx_75]<0.25)
+    elif population_idx==8:
+        condition = (freqs[idx_80]>0.2)*(freqs[idx_80]<0.6)*(not ((freqs[idx_80]>0.3)*(freqs[idx_80]<0.6)*(freqs[idx_75]<0.25)))
     else:
         condition = False
         

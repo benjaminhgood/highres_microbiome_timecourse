@@ -89,70 +89,80 @@ fig, axes = plt.subplots(2*len(species_names),sharex=True,sharey=False,figsize=(
 #    axes = [axes]
 
 freq_axis = None
-    
+
+old_species_name=""    
 for species_idx in xrange(0,len(species_names)):        
 
     species_name = species_names[species_idx]
     
-    
     sys.stderr.write("Processing %s...\n" % species_name)
     
+    if species_name!=old_species_name:
     
-    # Load gene coverage information for species_name
-    sys.stderr.write("Loading pangenome data for %s...\n" % species_name)
-    gene_samples, gene_names, gene_presence_matrix, gene_depth_matrix, marker_coverages, gene_reads_matrix = parse_midas_data.parse_pangenome_data(species_name,allowed_samples=desired_samples)
-    sys.stderr.write("Done!\n")
-    marker_coverage_times, marker_coverage_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, gene_samples)
+    
+    
+        # Load gene coverage information for species_name
+        sys.stderr.write("Loading pangenome data for %s...\n" % species_name)
+        gene_samples, gene_names, gene_presence_matrix, gene_depth_matrix, marker_coverages, gene_reads_matrix = parse_midas_data.parse_pangenome_data(species_name,allowed_samples=desired_samples)
+        sys.stderr.write("Done!\n")
+        marker_coverage_times, marker_coverage_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, gene_samples)
 
-    marker_coverages = marker_coverages[marker_coverage_idxs]
+        marker_coverages = marker_coverages[marker_coverage_idxs]
     
-    times = []
-    alt_matrix = []
-    depth_matrix = []
-    snp_infos = []
+        times = []
+        alt_matrix = []
+        depth_matrix = []
+        snp_infos = []
 
-    final_line_number = 0
-    while final_line_number >= 0:
+        final_line_number = 0
+        while final_line_number >= 0:
     
-        sys.stderr.write("Loading chunk starting @ %d...\n" % final_line_number)
-        samples, allele_counts_map, passed_sites_map, final_line_number = parse_midas_data.parse_snps(species_name, debug=debug, allowed_variant_types=set(['1D','2D','3D','4D']),chunk_size=chunk_size,allowed_samples=desired_samples, initial_line_number=final_line_number)
-        sys.stderr.write("Done! Loaded %d genes\n" % len(allele_counts_map.keys()))
+            sys.stderr.write("Loading chunk starting @ %d...\n" % final_line_number)
+            samples, allele_counts_map, passed_sites_map, final_line_number = parse_midas_data.parse_snps(species_name, debug=debug, allowed_variant_types=set(['1D','2D','3D','4D']),chunk_size=chunk_size,allowed_samples=desired_samples, initial_line_number=final_line_number)
+            sys.stderr.write("Done! Loaded %d genes\n" % len(allele_counts_map.keys()))
     
-        if len(samples)<5:
-            break
+            if len(samples)<5:
+                break
      
     
-        sample_ts, sample_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, samples)
+            sample_ts, sample_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, samples)
 
-        # Calculate fixation matrix
-        sys.stderr.write("Calculating allele freqs...\n")
-        chunk_alts, chunk_depths, chunk_snp_infos = timecourse_utils.calculate_read_count_matrix(allele_counts_map, passed_sites_map, allowed_variant_types=set(['1D','2D','3D','4D']))    
-        sys.stderr.write("Done!\n")
+            # Calculate fixation matrix
+            sys.stderr.write("Calculating allele freqs...\n")
+            chunk_alts, chunk_depths, chunk_snp_infos = timecourse_utils.calculate_read_count_matrix(allele_counts_map, passed_sites_map, allowed_variant_types=set(['1D','2D','3D','4D']))    
+            sys.stderr.write("Done!\n")
     
-        chunk_alts = chunk_alts[:,sample_idxs]
-        chunk_depths = chunk_depths[:,sample_idxs]
-        # polarize using first timepoint
-        chunk_alts += (chunk_depths-2*chunk_alts)*(((chunk_alts[:,0]+chunk_alts[:,1])>((chunk_depths[:,0]+chunk_depths[:,1])/2))[:,None])
+            chunk_alts = chunk_alts[:,sample_idxs]
+            chunk_depths = chunk_depths[:,sample_idxs]
+            # polarize using first timepoint
+            chunk_alts += (chunk_depths-2*chunk_alts)*(((chunk_alts[:,0]+chunk_alts[:,1])>((chunk_depths[:,0]+chunk_depths[:,1])/2))[:,None])
     
-        desired_sites = ((chunk_alts>(0.1*chunk_depths)).sum(axis=1)>2)*((chunk_depths>0).sum(axis=1)>10)
+            desired_sites = ((chunk_alts>(0.1*chunk_depths)).sum(axis=1)>2)*((chunk_depths>0).sum(axis=1)>10)
     
-        chunk_alts = chunk_alts[desired_sites,:]
-        chunk_depths = chunk_depths[desired_sites,:]
-        chunk_allele_freqs = chunk_alts*1.0/(chunk_depths+(chunk_depths==0))
+            chunk_alts = chunk_alts[desired_sites,:]
+            chunk_depths = chunk_depths[desired_sites,:]
+            chunk_allele_freqs = chunk_alts*1.0/(chunk_depths+(chunk_depths==0))
     
-        if len(times)==0:
-            times = sample_ts
+            if len(times)==0:
+                times = sample_ts
         
                       
-        if desired_sites.sum()>0:
-            alt_matrix.append(chunk_alts)
-            depth_matrix.append(chunk_depths)
-            desired_site_idxs = numpy.nonzero(desired_sites)[0]
-            for idx in desired_site_idxs:
-                snp_infos.append(chunk_snp_infos[idx])
+            if desired_sites.sum()>0:
+                alt_matrix.append(chunk_alts)
+                depth_matrix.append(chunk_depths)
+                desired_site_idxs = numpy.nonzero(desired_sites)[0]
+                for idx in desired_site_idxs:
+                    snp_infos.append(chunk_snp_infos[idx])
                     
-    sys.stderr.write("Done!\n")
-
+        sys.stderr.write("Done!\n")
+        
+        if len(alt_matrix)>0:     
+            alt_matrix = numpy.vstack(alt_matrix)
+            depth_matrix = numpy.vstack(depth_matrix) 
+        else:
+            alt_matrix = numpy.array([])
+            depth_matrix = numpy.array([])
+    
 
     # set up figure axis
     
@@ -213,12 +223,8 @@ for species_idx in xrange(0,len(species_names)):
         
     species_freq_axis.set_xlim([0,160])   
     
-    
-    if len(alt_matrix)==0:
-        continue
-                
-    alt_matrix = numpy.vstack(alt_matrix)
-    depth_matrix = numpy.vstack(depth_matrix) 
+    if alt_matrix.shape[0]==0:
+        break 
     
     p = min([1,1000.0/(len(snp_infos)+1)])
 
@@ -265,7 +271,7 @@ for species_idx in xrange(0,len(species_names)):
                 freq_axis.plot(masked_times, masked_freqs, '-', color='0.7', alpha=0.5, markersize=3,label=gene_name,linewidth=0.25,zorder=1)
      
     sys.stderr.write("Colored=%d, Total=%d\n" % (num_colored_mutations, num_total_mutations))
-    
+    old_species_name = species_name
     
 freq_axis.set_xlabel('Time, $t$ (days)')
 
