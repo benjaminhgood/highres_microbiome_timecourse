@@ -3,7 +3,8 @@
 # Rest of script begins here
 #
 ################################
-
+import matplotlib  
+matplotlib.use('Agg') 
 import pylab
 import numpy
 import sys
@@ -97,8 +98,8 @@ for species_idx in xrange(0,len(species_names)):
     sys.stderr.write("Processing %s...\n" % species_name)
     
     
-    antibiotic_resistance_genes = load_antibiotic_resistance_genes(species_name)
-    virulence_factors = load_virulence_factors(species_name)
+    #antibiotic_resistance_genes = load_antibiotic_resistance_genes(species_name)
+    #virulence_factors = load_virulence_factors(species_name)
     
     # Load gene coverage information for species_name
     sys.stderr.write("Loading pangenome data for %s...\n" % species_name)
@@ -106,12 +107,14 @@ for species_idx in xrange(0,len(species_names)):
     sys.stderr.write("Done!\n")
     times, marker_coverage_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, gene_samples)
 
-    gene_copynums = gene_depth_matrix*1.0/(marker_coverages+(marker_coverages==0))
+    gene_names = numpy.array(gene_names)
+    gene_copynum_matrix = gene_depth_matrix*1.0/(marker_coverages+(marker_coverages==0))
     marker_coverages = marker_coverages[marker_coverage_idxs]
-    gene_copynums = gene_copynums[:,marker_coverage_idxs]
+    gene_copynum_matrix = gene_copynum_matrix[:,marker_coverage_idxs]
     
-    gene_idxs = ((gene_copynums>0.3).sum(axis=1)>0)
-    gene_copy = 
+    gene_idxs = ((gene_copynum_matrix>0.3).sum(axis=1)>0)
+    gene_copynum_matrix = gene_copynum_matrix[gene_idxs,:]
+    gene_names = gene_names[gene_idxs] 
 
     # set up figure axis
     
@@ -140,22 +143,22 @@ for species_idx in xrange(0,len(species_names)):
     depth_axis.set_xlim([0,160])   
     
     
-    freq_axis = axes[2*species_idx+1]
+    copynum_axis = axes[2*species_idx+1]
     
     if additional_titles[species_idx]=="":
         title_text = '%s diversity' % species_name
     else:
         title_text = '%s %s diversity' % (species_name, additional_titles[species_idx])  
-    freq_axis.set_title(title_text,loc='right',fontsize=6)
+    copynum_axis.set_title(title_text,loc='right',fontsize=6)
         
-    freq_axis.set_ylabel('Allele frequency, $f(t)$')
-    freq_axis.spines['top'].set_visible(False)
-    freq_axis.spines['right'].set_visible(False)
-    freq_axis.get_xaxis().tick_bottom()
-    freq_axis.get_yaxis().tick_left()
+    copynum_axis.set_ylabel('Gene copynum')
+    copynum_axis.spines['top'].set_visible(False)
+    copynum_axis.spines['right'].set_visible(False)
+    copynum_axis.get_xaxis().tick_bottom()
+    copynum_axis.get_yaxis().tick_left()
     
-    freq_axis.set_xlim([0,160])   
-    freq_axis.set_ylim([0,1.02])
+    copynum_axis.set_xlim([0,160])   
+    copynum_axis.set_ylim([1e-01,1])
     
     num_colored_mutations = 0
     num_total_mutations = 0
@@ -163,7 +166,7 @@ for species_idx in xrange(0,len(species_names)):
     # Plot species abundance and marker coverage
     species_freqs = species_freq_matrix[species_idx_map[species_name],:]
     
-    depth_axis.semilogy(marker_coverage_times[marker_coverages>0], marker_coverages[marker_coverages>0],'.-',color='#007ccd',markersize=3)
+    depth_axis.semilogy(times[marker_coverages>0], marker_coverages[marker_coverages>0],'.-',color='#007ccd',markersize=3)
     species_freq_axis.semilogy(species_times[species_freqs>0], species_freqs[species_freqs>0],'k.-',markersize=3)
     
     if species_freqs[species_freqs>0].min() < 1e-04:
@@ -172,60 +175,39 @@ for species_idx in xrange(0,len(species_names)):
         
     species_freq_axis.set_xlim([0,160])   
     
-    
-    if len(alt_matrix)==0:
-        continue
-                
-    alt_matrix = numpy.vstack(alt_matrix)
-    depth_matrix = numpy.vstack(depth_matrix) 
-    
-    p = min([1,1000.0/(len(snp_infos)+1)])
 
-    for mutation_idx in xrange(0,len(snp_infos)):
+    p = 1 #min([1,1000.0/(len(snp_infos)+1)])
+
+    for gene_idx in xrange(0,gene_copynum_matrix.shape[0]):
         
         num_total_mutations += 1
      
-        chromosome, location, gene_name, variant_type = snp_infos[mutation_idx]
-        alts = alt_matrix[mutation_idx,:]
-        depths = depth_matrix[mutation_idx,:]
+        gene_copynums = gene_copynum_matrix[gene_idx,:]
+        gene_name = gene_names[gene_idx]
+    
         
-        freqs = alts*1.0/(depths+(depths==0))
-        
-        masked_times = times[depths>0]
-        masked_freqs = freqs[depths>0]
-        masked_depths = depths[depths>0]
-        
-        
-        if masked_freqs[0]>0.5:
-            masked_freqs = 1-masked_freqs
-            
-        if (masked_freqs>0.1).sum() < 2:
-            continue
-         
-        interpolation_function = timecourse_utils.create_interpolation_function(masked_times, masked_freqs)
-        
-        if color_condition(species_idx, chromosome, location, gene_name, variant_type, masked_times, masked_freqs, masked_depths):
+        if color_condition(species_idx, gene_name, gene_copynums, marker_coverages):
         
             # One of the colored ones!
             num_colored_mutations+=1
             
             #sys.stderr.write("%s %d %s %s\n" % (gene_name, location, var_type, allele)) 
             
-            line, = freq_axis.plot(masked_times, masked_freqs, '-o', alpha=0.5, markersize=2, markeredgecolor='none', zorder=4, linewidth=COLORED_LINEWIDTH)
+            line, = copynum_axis.plot(times, gene_copynums, '-o', alpha=0.5, markersize=2, markeredgecolor='none', zorder=4, linewidth=COLORED_LINEWIDTH)
             color = pylab.getp(line,'color')
             
         else:  
             # One of the non-colored ones
             #freq_axis.plot(theory_times, interpolation_function(theory_times), '-', alpha=0.5, color='0.7', markersize=3,linewidth=1,zorder=1)
             if random_sample() < p:
-                freq_axis.plot(masked_times, masked_freqs, '-', color='0.7', alpha=0.5, markersize=3,label=gene_name,linewidth=0.25,zorder=1)
+                copynum_axis.plot(times, gene_copynums, '-', color='0.7', alpha=0.5, markersize=3,label=gene_name,linewidth=0.25,zorder=1)
      
     sys.stderr.write("Colored=%d, Total=%d\n" % (num_colored_mutations, num_total_mutations))
     
     
-freq_axis.set_xlabel('Time, $t$ (days)')
+copynum_axis.set_xlabel('Time, $t$ (days)')
 
-freq_axis.set_xlim([0,160])   
+copynum_axis.set_xlim([0,160])   
  
 sys.stderr.write("Saving final PNG image...\t")
 fig.savefig(filename, bbox_inches='tight', dpi=300, transparent=True)

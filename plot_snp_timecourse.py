@@ -3,7 +3,8 @@
 # Rest of script begins here
 #
 ################################
-
+import matplotlib  
+matplotlib.use('Agg') 
 import pylab
 import numpy
 import sys
