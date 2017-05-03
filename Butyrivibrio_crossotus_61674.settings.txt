@@ -1,0 +1,46 @@
+######################################################
+#
+# Make a copy of this file and edit it to your liking
+#
+######################################################
+
+# Which population to plot
+species_names = ['Butyrivibrio_crossotus_61674','Butyrivibrio_crossotus_61674','Butyrivibrio_crossotus_61674']
+# Alternative: can access entire list using function:
+#species_names = parse_midas_data.parse_good_species_list()
+
+# Output filename (alter as needed)
+filename = parse_midas_data.analysis_directory+'Butyrivibrio_crossotus_61674_timecourse.png'
+
+min_coverage=20
+
+####################################################################
+#
+#  Function controlling which mutations are colored
+#
+#      Returns: true for colored
+#               false for not colored
+#
+####################################################################
+def color_condition(population_idx, chromosome, location, gene_name, variant_type, times, freqs, depths):
+
+    idx_80 = numpy.fabs(times-81).argmin()
+    idx_10 = numpy.fabs(times-11).argmin()
+    idx_38 = numpy.fabs(times-38).argmin()
+    idx_47 = numpy.fabs(times-47).argmin()
+    idx_75 = numpy.fabs(times-75).argmin()
+    # don't use interpolated freqs yet.    
+    
+    # First two conditions require mutation to start at low frequency
+    # i.e., to focus on "de novo" mutations
+    
+    if population_idx==0:
+        condition = (freqs[-1]>0.5)
+    elif population_idx==1:
+        condition = (freqs[1]>0.4)
+    elif population_idx==2:
+        condition = (freqs[:idx_47+1]<0.1).all()*(freqs[-1]>0.2)
+    else:
+        condition = False
+        
+    return condition
