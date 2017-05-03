@@ -63,7 +63,7 @@ COLORED_LINEWIDTH=0.5
 PLOT_APPEARANCE_TIME=False
 
 # Mininum coverage for frequency estimation vs interpolation 
-min_coverage = 20
+min_coverage = 10
 
 
 # load settings
@@ -230,11 +230,14 @@ for species_idx in xrange(0,len(species_names)):
         alts = alt_matrix[mutation_idx,:]
         depths = depth_matrix[mutation_idx,:]
         
+        if (depths>=min_coverage).sum() < 2:
+            continue
+        
         freqs = alts*1.0/(depths+(depths==0))
         
-        masked_times = times[depths>0]
-        masked_freqs = freqs[depths>0]
-        masked_depths = depths[depths>0]
+        masked_times = times[depths>=min_coverage]
+        masked_freqs = freqs[depths>=min_coverage]
+        masked_depths = depths[depths>=min_coverage]
         
         
         if masked_freqs[0]>0.5:

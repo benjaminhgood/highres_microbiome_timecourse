@@ -829,7 +829,7 @@ def pipe_snps(species_name, min_nonzero_median_coverage=5, lower_factor=0.3, upp
 # returns (lots of things, see below)
 #
 ###############################################################################
-def parse_snps(species_name, debug=False, allowed_samples=[], allowed_genes=[], allowed_variant_types=['1D','2D','3D','4D'], initial_line_number=0, chunk_size=1000000000):
+def parse_snps(species_name, debug=False, allowed_samples=[], allowed_genes=[], allowed_variant_types=['1D','2D','3D','4D'], initial_line_number=0, chunk_size=1000000000, filter_alts=True):
     
     # Open post-processed MIDAS output
     snp_file =  bz2.BZ2File("%ssnps/%s/annotated_snps.txt.bz2" % (data_directory, species_name),"r")
@@ -914,9 +914,19 @@ def parse_snps(species_name, debug=False, allowed_samples=[], allowed_genes=[], 
         depths = depths*passed_sites
         
         # calculate whether SNP has passed
-        alt_threshold = numpy.ceil(depths*0.05)+0.5 #at least one read above 5%.
-        alts = alts*((alts>alt_threshold))
-        snp_passed = (alts.sum()>0) and (pvalue<0.05)
+        alt_lower_threshold = numpy.ceil(depths*0.1)+0.5
+        alt_upper_threshold = numpy.ceil(depths*0.90)-0.5
+        
+        polymorphic_idxs = (alts>alt_lower_threshold)*(alts<alt_upper_threshold)
+        
+        if (polymorphic_idxs.sum()>0) and (pvalue<0.05):
+            snp_passed=True
+        else:
+            snp_passed=False  
+        
+        #alt_threshold = numpy.ceil(depths*0.05)+0.5 #at least one read above 5%.
+        #alts = alts*((alts>alt_lower_threshold))
+        #snp_passed = (alts.sum()>0) and (pvalue<0.05)
         
         # Criteria used in Schloissnig et al (Nature, 2013)
         #total_alts = alts.sum()
@@ -1134,6 +1144,7 @@ def parse_pangenome_data(species_name, allowed_samples = [], allowed_genes=[]):
     gene_depth_matrix = numpy.array(gene_depth_matrix)
     gene_reads_matrix = numpy.array(gene_reads_matrix)
 
+    # Make sure the centroid names reflect genes on the reference genome
     new_gene_names = []
     centroid_gene_map = load_centroid_gene_map(species_name)
     for gene_name in gene_names:
@@ -1209,13 +1220,13 @@ def load_pangenome_genes(species_name):
             gene_names.append(gene_name)            
         presabs_line = gene_presabs_file.readline() # header
 
+    # Make sure gene names reflect name of gene on reference genome
     centroid_gene_map = load_centroid_gene_map(species_name)
-
     new_species_names = []
     for gene_name in gene_names:
         new_species_names.append(centroid_gene_map[gene_name])
-        
-    return set(gene_names), set(new_species_names)
+    return new_species_names    
+    #return set(gene_names), set(new_species_names)
 
 
     

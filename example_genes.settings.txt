@@ -1,0 +1,31 @@
+######################################################
+#
+# Make a copy of this file and edit it to your liking
+#
+######################################################
+
+# Which population to plot
+species_names = ['Bacteroides_vulgatus_57955']
+# Alternative: can access entire list using function:
+#species_names = parse_midas_data.parse_good_species_list()
+
+# Output filename (alter as needed)
+filename = parse_midas_data.analysis_directory+'example_gene_timecourse.png'
+
+####################################################################
+#
+#  Function controlling which mutations are colored
+#
+#      Returns: true for colored
+#               false for not colored
+#
+####################################################################
+def color_condition(population_idx, gene_name, times, gene_copynums, marker_coverages):
+        
+    # don't use interpolated freqs yet.    
+    
+    # First two conditions require mutation to start at low frequency
+    # i.e., to focus on "de novo" mutations
+    condition = False
+    
+    return condition

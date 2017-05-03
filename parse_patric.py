@@ -47,11 +47,11 @@ def load_spgenes_annotations(gene_names):
     # dictionary to store the special gene ids (gene_id -> [property,product])
     spgenes_ids={}
     genomes_visited=[]
-    for i in range(0, len(gene_names)):
-        genome_id='.'.join(gene_names[i].split('.')[0:2])
+    for gene_name in gene_names: 
+        genome_id='.'.join(gene_name.split('.')[0:2])
         if genome_id not in genomes_visited:
             genomes_visited.append(genome_id)
-            file= gzip.open("%spatric_spgene/%s.PATRIC.spgene.tab.gz" % (parse_midas_data.data_directory, genome_id),"r")
+            file= gzip.open("%spatric_spgene/%s.PATRIC.spgene.tab.gz" % (parse_midas_data.patric_directory, genome_id),"r")
             file.readline() #header  
             for line in file:
                 if line.strip() != "":
@@ -68,7 +68,7 @@ def load_antibiotic_resistance_genes(species_name):
     # get pangenome genome for species_name
     
     pangenome_genes = parse_midas_data.load_pangenome_genes(species_name)
-    spgenes_ids = load_spgenes_annotations(gene_names)
+    spgenes_ids = load_spgenes_annotations(pangenome_genes)
     
     antibiotic_resistance_genes = set([])
     
@@ -84,7 +84,7 @@ def load_virulence_factors(species_name):
     # get pangenome genome for species_name
     
     pangenome_genes = parse_midas_data.load_pangenome_genes(species_name)
-    spgenes_ids = load_spgenes_annotations(gene_names)
+    spgenes_ids = load_spgenes_annotations(pangenome_genes)
     
     virulence_genes = set([])
     

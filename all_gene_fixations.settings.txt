@@ -1,0 +1,40 @@
+######################################################
+#
+# Make a copy of this file and edit it to your liking
+#
+######################################################
+
+# Which population to plot
+species_names = parse_midas_data.parse_good_species_list()
+
+# Output filename (alter as needed)
+filename = parse_midas_data.analysis_directory+'all_gene_fixation_timecourse.png'
+
+####################################################################
+#
+#  Function controlling which mutations are colored
+#
+#      Returns: true for colored
+#               false for not colored
+#
+####################################################################
+def color_condition(population_idx, gene_name, times, gene_copynums, marker_coverages):
+        
+    # don't use interpolated freqs yet.    
+    
+    # First two conditions require mutation to start at low frequency
+    # i.e., to focus on "de novo" mutations
+    
+    condition = False
+    normal_coverage_idxs = ((gene_copynums>0.3)*(gene_copynums<3))*(marker_coverages>=20)
+    
+    if normal_coverage_idxs.any():
+        # has normal coverage somewhere
+        
+        max_normal_coverage = gene_copynums[normal_coverage_idxs].max()
+        min_normal_coverage = gene_copynums[normal_coverage_idxs].min()
+        
+        if ((gene_copynums>=(max_normal_coverage*16))*(marker_coverages>=20)).any() or ((gene_copynums<=(min_normal_coverage/16))*(marker_coverages>=20)).any():
+            condition = True
+            
+    return condition

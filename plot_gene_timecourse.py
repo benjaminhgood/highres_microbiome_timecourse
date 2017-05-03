@@ -21,6 +21,7 @@ import parse_timecourse_data
 import matplotlib
 import matplotlib.pyplot as plt
 import timecourse_utils
+import parse_patric
 
 ################################################################################
 #
@@ -98,8 +99,8 @@ for species_idx in xrange(0,len(species_names)):
     sys.stderr.write("Processing %s...\n" % species_name)
     
     
-    #antibiotic_resistance_genes = load_antibiotic_resistance_genes(species_name)
-    #virulence_factors = load_virulence_factors(species_name)
+    antibiotic_resistance_genes = parse_patric.load_antibiotic_resistance_genes(species_name)
+    virulence_factors = parse_patric.load_virulence_factors(species_name)
     
     # Load gene coverage information for species_name
     sys.stderr.write("Loading pangenome data for %s...\n" % species_name)
@@ -146,9 +147,9 @@ for species_idx in xrange(0,len(species_names)):
     copynum_axis = axes[2*species_idx+1]
     
     if additional_titles[species_idx]=="":
-        title_text = '%s diversity' % species_name
+        title_text = '%s genes' % species_name
     else:
-        title_text = '%s %s diversity' % (species_name, additional_titles[species_idx])  
+        title_text = '%s %s genes' % (species_name, additional_titles[species_idx])  
     copynum_axis.set_title(title_text,loc='right',fontsize=6)
         
     copynum_axis.set_ylabel('Gene copynum')
@@ -158,7 +159,7 @@ for species_idx in xrange(0,len(species_names)):
     copynum_axis.get_yaxis().tick_left()
     
     copynum_axis.set_xlim([0,160])   
-    copynum_axis.set_ylim([1e-01,1])
+    copynum_axis.set_ylim([1e-01,100])
     
     num_colored_mutations = 0
     num_total_mutations = 0
@@ -186,21 +187,21 @@ for species_idx in xrange(0,len(species_names)):
         gene_name = gene_names[gene_idx]
     
         
-        if color_condition(species_idx, gene_name, gene_copynums, marker_coverages):
+        if color_condition(species_idx, gene_name, times, gene_copynums, marker_coverages):
         
             # One of the colored ones!
             num_colored_mutations+=1
             
             #sys.stderr.write("%s %d %s %s\n" % (gene_name, location, var_type, allele)) 
             
-            line, = copynum_axis.plot(times, gene_copynums, '-o', alpha=0.5, markersize=2, markeredgecolor='none', zorder=4, linewidth=COLORED_LINEWIDTH)
+            line, = copynum_axis.semilogy(times, gene_copynums, '-o', alpha=0.5, markersize=2, markeredgecolor='none', zorder=4, linewidth=COLORED_LINEWIDTH)
             color = pylab.getp(line,'color')
             
         else:  
             # One of the non-colored ones
             #freq_axis.plot(theory_times, interpolation_function(theory_times), '-', alpha=0.5, color='0.7', markersize=3,linewidth=1,zorder=1)
             if random_sample() < p:
-                copynum_axis.plot(times, gene_copynums, '-', color='0.7', alpha=0.5, markersize=3,label=gene_name,linewidth=0.25,zorder=1)
+                copynum_axis.semilogy(times, gene_copynums, '-', color='0.7', alpha=0.5, markersize=3,label=gene_name,linewidth=0.25,zorder=1)
      
     sys.stderr.write("Colored=%d, Total=%d\n" % (num_colored_mutations, num_total_mutations))
     
