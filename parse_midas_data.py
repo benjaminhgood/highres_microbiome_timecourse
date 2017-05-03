@@ -18,6 +18,8 @@ import config
 data_directory = config.data_directory
 analysis_directory = config.analysis_directory
 scripts_directory = config.scripts_directory
+patric_directory = config.patric_directory
+midas_directory = config.midas_directory
 
 # We use this one to debug because it was the first one we looked at
 debug_species_name = config.debug_species_name
@@ -1160,7 +1162,7 @@ def load_centroid_gene_map(desired_species_name):
     # First load reference genes
     reference_genes = load_reference_genes(desired_species_name)
     
-    gene_info_file = gzip.open("%smidas_db_v1.2/pan_genomes/%s/gene_info.txt.gz" % (data_directory, desired_species_name), 'r')
+    gene_info_file = gzip.open("%span_genomes/%s/gene_info.txt.gz" % (midas_directory, desired_species_name), 'r')
     
     gene_info_file.readline() # header
     
@@ -1225,7 +1227,7 @@ def load_pangenome_genes(species_name):
 def load_reference_genes(desired_species_name):
 
     
-    features_file = gzip.open("%smidas_db_v1.2/rep_genomes/%s/genome.features.gz" % (data_directory, desired_species_name), 'r')
+    features_file = gzip.open("%srep_genomes/%s/genome.features.gz" % (midas_directory, desired_species_name), 'r')
     
     features_file.readline() # header
     reference_genes = []
@@ -1277,7 +1279,7 @@ def load_marker_genes(desired_species_name, require_in_reference_genome=True):
 
     reference_genes = set(load_reference_genes(desired_species_name))
     
-    marker_gene_file = open("%smidas_db_v1.2/marker_genes/phyeco.map" % (data_directory), 'r')
+    marker_gene_file = open("%smarker_genes/phyeco.map" % (midas_directory), 'r')
     
     marker_gene_file.readline() # header
     
@@ -1542,7 +1544,7 @@ def calculate_unique_time_pairs(subject_sample_time_map, samples):
 #########################################################################################
 
 def representative_genome_id(desired_species_name):
-    species_info = open("%smidas_db_v1.2/species_info.txt" % data_directory)
+    species_info = open("%sspecies_info.txt" % midas_directory)
     species_info.readline() #header
     
     genome_id_to_return=''
