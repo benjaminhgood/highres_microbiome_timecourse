@@ -5,12 +5,12 @@
 ######################################################
 
 # Which population to plot
-species_names = ['Alistipes_onderdonkii_55464','Alistipes_onderdonkii_55464','Alistipes_onderdonkii_55464','Alistipes_onderdonkii_55464', 'Alistipes_onderdonkii_55464', 'Alistipes_onderdonkii_55464',  'Alistipes_onderdonkii_55464', 'Alistipes_onderdonkii_55464']
+species_names = ['Bacteroides_uniformis_57318','Bacteroides_uniformis_57318','Bacteroides_uniformis_57318','Bacteroides_uniformis_57318','Bacteroides_uniformis_57318','Bacteroides_uniformis_57318','Bacteroides_uniformis_57318','Bacteroides_uniformis_57318',]
 # Alternative: can access entire list using function:
 #species_names = parse_midas_data.parse_good_species_list()
 
 # Output filename (alter as needed)
-filename = parse_midas_data.analysis_directory+'Alistipes_onderdonkii_55464_timecourse.png'
+filename = parse_midas_data.analysis_directory+'Bacteroides_uniformis_57318_timecourse.png'
 
 ####################################################################
 #
@@ -29,20 +29,21 @@ def color_condition(population_idx, chromosome, location, gene_name, variant_typ
     idx_130 = (numpy.fabs(times-75)).argmin() 
     idx_82 = (numpy.fabs(times-82)).argmin()
     idx_70 = (numpy.fabs(times-70)).argmin() 
+    idx_39 = (numpy.fabs(times-39)).argmin()
     if population_idx==0:
 	condition = (freqs[-1]<0.1)*(freqs[idx_130]<0.1)
     elif population_idx==1:
-	condition =(freqs[idx_130]>0.3)*(freqs[idx_130]<0.6)
+	condition =(freqs[0]<0.50)*(freqs[idx_39]<0.3)*(freqs[2]>0.4)*(freqs[-1]>0.5)
     elif population_idx==2:
-        condition = (freqs[-2]>0.3)*(freqs[-2]<0.5)*(freqs[-1]>0.25)
+	condition = (freqs[0]<0.50)*(freqs[idx_39]<0.3)*(freqs[2]>0.4)
     elif population_idx==3:
 	condition = (freqs[idx_130]>0.75)  
     elif population_idx==4:
         condition = (freqs[0]<0.1)
     elif population_idx==5:
-	condition = (freqs[-1]<0.1)
+	condition = (freqs[idx_39]>0.5)*(freqs[2]<0.4)
     elif population_idx==6:
-	condition = ((freqs.max()-freqs.min()) > 0.5)*(freqs[0]<0.05)
+	condition = (freqs[idx_39]>0.5)*(freqs[2]<0.4)*(freqs[idx_130]<0.4)  
     elif population_idx==7:
 	condition = (freqs[idx_70]>0.40)*(freqs[idx_70]<0.60)
 

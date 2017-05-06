@@ -5,12 +5,12 @@
 ######################################################
 
 # Which population to plot
-species_names = ['Alistipes_onderdonkii_55464','Alistipes_onderdonkii_55464','Alistipes_onderdonkii_55464','Alistipes_onderdonkii_55464', 'Alistipes_onderdonkii_55464', 'Alistipes_onderdonkii_55464',  'Alistipes_onderdonkii_55464', 'Alistipes_onderdonkii_55464']
+species_names = ['Faecalibacterium_prausnitzii_61481','Faecalibacterium_prausnitzii_61481','Faecalibacterium_prausnitzii_61481','Faecalibacterium_prausnitzii_61481','Faecalibacterium_prausnitzii_61481','Faecalibacterium_prausnitzii_61481','Faecalibacterium_prausnitzii_61481','Faecalibacterium_prausnitzii_61481']
 # Alternative: can access entire list using function:
 #species_names = parse_midas_data.parse_good_species_list()
 
 # Output filename (alter as needed)
-filename = parse_midas_data.analysis_directory+'Alistipes_onderdonkii_55464_timecourse.png'
+filename = parse_midas_data.analysis_directory+'Faecalibacterium_prausnitzii_61481_timecourse.png'
 
 ####################################################################
 #
@@ -42,7 +42,7 @@ def color_condition(population_idx, chromosome, location, gene_name, variant_typ
     elif population_idx==5:
 	condition = (freqs[-1]<0.1)
     elif population_idx==6:
-	condition = ((freqs.max()-freqs.min()) > 0.5)*(freqs[0]<0.05)
+	condition = ((freqs.max()-freqs.min()) > 0.5)
     elif population_idx==7:
 	condition = (freqs[idx_70]>0.40)*(freqs[idx_70]<0.60)
 
