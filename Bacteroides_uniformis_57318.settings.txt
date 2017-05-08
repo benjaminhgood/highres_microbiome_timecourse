@@ -5,12 +5,13 @@
 ######################################################
 
 # Which population to plot
-species_names = ['Bacteroides_uniformis_57318','Bacteroides_uniformis_57318','Bacteroides_uniformis_57318','Bacteroides_uniformis_57318','Bacteroides_uniformis_57318','Bacteroides_uniformis_57318','Bacteroides_uniformis_57318','Bacteroides_uniformis_57318',]
+species_name='Bacteroides_uniformis_57318'
+species_names= [species_name]*8
 # Alternative: can access entire list using function:
 #species_names = parse_midas_data.parse_good_species_list()
 
 # Output filename (alter as needed)
-filename = parse_midas_data.analysis_directory+'Bacteroides_uniformis_57318_timecourse.png'
+filename = parse_midas_data.analysis_directory+species_name+'_timecourse.png'
 
 ####################################################################
 #
