@@ -5,7 +5,8 @@
 ######################################################
 
 # Which population to plot
-species_names = ['Bacteroides_vulgatus_57955', 'Bacteroides_vulgatus_57955','Bacteroides_vulgatus_57955','Bacteroides_vulgatus_57955']
+species_names = ['Bacteroides_vulgatus_57955']*8
+
 # Alternative: can access entire list using function:
 #species_names = parse_midas_data.parse_good_species_list()
 
@@ -22,20 +23,45 @@ filename = parse_midas_data.analysis_directory+'Bacteroides_vulgatus_57955_timec
 ####################################################################
 def color_condition(population_idx, chromosome, location, gene_name, variant_type, times, freqs, depths):
 
+    #if gene_name not in core_genes:
+        #return False
+
     # don't use interpolated freqs yet.    
     
     # First two conditions require mutation to start at low frequency
     # i.e., to focus on "de novo" mutations
     
     if population_idx==0:
-        condition = freqs[-2]>0.5
+       
+        # Highest freq guys at last timepoint
+        condition = (freqs[-1] > 0.6)*(freqs[-2]<0.5)*(gene_name in core_genes)
+    
     elif population_idx==1:
-        condition = (freqs[-2]>0.3)*(freqs[-2]<0.5)*(freqs[-1]<0.25)
+        # Highest freq guys at last timepoint
+        # but not on a core gene
+        condition = (freqs[-1] > 0.6)*(freqs[-2]<0.5)*(gene_name not in core_genes)
+        
     elif population_idx==2:
-        condition = (freqs[-2]>0.3)*(freqs[-2]<0.5)*(freqs[-1]>0.25)
+    
+        # Highest guys at second-to-last timepoint
+        condition = (gene_name in core_genes)*(freqs[-2]>0.5)*(freqs[-1]>0.4)
+        
+    
+        
     elif population_idx==3:
-        condition = (freqs[-2]>0.15)*(freqs[-2]<0.25)
+        condition = (gene_name in core_genes)*(freqs[-2]>0.3)*(freqs[-2]<0.5)*(freqs[-1]<0.25)
+    elif population_idx==4:
+        condition = (gene_name in core_genes)*(freqs[-2]>0.15)*(freqs[-2]<0.25)*(freqs[-1]<0.6)*(freqs[-1]>0.2)
+    elif population_idx==5:
+        condition = (gene_name in core_genes)*(freqs[-2]>0.15)*(freqs[-2]<0.25)*(freqs[-1]<0.2)
+        
         #print chromosome, location, gene_name, variant_type
+    elif population_idx==6:
+        condition = (gene_name in core_genes)*(freqs[2]>0.5)
+    
+    elif population_idx==7:
+        condition = (gene_name in core_genes)*(freqs[2]<0.5)*(freqs[7]>0.5)
+        
     else:
         condition = False
         

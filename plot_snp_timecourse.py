@@ -21,6 +21,7 @@ import parse_timecourse_data
 import matplotlib
 import matplotlib.pyplot as plt
 import timecourse_utils
+import parse_patric
 
 ################################################################################
 #
@@ -75,19 +76,28 @@ exec settings_string
 if additional_titles==None:
     additional_titles = ["" for species_name in species_names]
 
+num_unique_species = 0
+old_species_name=""
+for species_name in species_names:
+    if species_name!=old_species_name:
+        num_unique_species+=1
+    
+    old_species_name = species_name
+    
 mpl.rcParams['font.size'] = 7.0
 mpl.rcParams['lines.linewidth'] = 0.25
 mpl.rcParams['legend.frameon']  = False
 mpl.rcParams['legend.fontsize']  = 'small'
 
 fig_width = 7
-fig_height = 1.7*(2*len(species_names))
+fig_height = 1.7*(num_unique_species+len(species_names))
 
-fig, axes = plt.subplots(2*len(species_names),sharex=True,sharey=False,figsize=(fig_width, fig_height))    
+fig, axes = plt.subplots(num_unique_species+len(species_names),sharex=True,sharey=False,figsize=(fig_width, fig_height))    
 
 #if len(species_names)<2:
 #    axes = [axes]
 
+fig_idx = 0
 freq_axis = None
 
 old_species_name=""    
@@ -98,8 +108,10 @@ for species_idx in xrange(0,len(species_names)):
     sys.stderr.write("Processing %s...\n" % species_name)
     
     if species_name!=old_species_name:
-    
-    
+        # New species!
+        antibiotic_resistance_genes = parse_patric.load_antibiotic_resistance_genes(species_name)
+        virulence_factors = parse_patric.load_virulence_factors(species_name)
+        core_genes = parse_timecourse_data.load_core_timecourse_genes(species_name, min_copynum=0.3, min_prevalence=0.9, min_marker_coverage=min_coverage)
     
         # Load gene coverage information for species_name
         sys.stderr.write("Loading pangenome data for %s...\n" % species_name)
@@ -164,34 +176,33 @@ for species_idx in xrange(0,len(species_names)):
             depth_matrix = numpy.array([])
     
 
-    # set up figure axis
+        # set up figure axis
     
-    species_freq_axis = axes[2*species_idx]
-    if additional_titles[species_idx]=="":
+        species_freq_axis = axes[fig_idx]
+        fig_idx += 1
         title_text = '%s abundance' % species_name
-    else:
-        title_text = '%s %s coverage' % (species_name, additional_titles[species_idx])  
-    species_freq_axis.set_title(title_text,loc='right',fontsize=6)
+        species_freq_axis.set_title(title_text,loc='right',fontsize=6)
         
-    species_freq_axis.set_ylabel('Species abundance')
-    species_freq_axis.spines['top'].set_visible(False)
-    species_freq_axis.get_xaxis().tick_bottom()
+        species_freq_axis.set_ylabel('Species abundance')
+        species_freq_axis.spines['top'].set_visible(False)
+        species_freq_axis.get_xaxis().tick_bottom()
     
-    depth_axis = species_freq_axis.twinx()
-    depth_axis.set_ylabel('Marker coverage',color='#007ccd',rotation=270,labelpad=10)
-    for tl in depth_axis.get_yticklabels():
-        tl.set_color('#007ccd')
-    depth_axis.spines['top'].set_visible(False)
-    depth_axis.spines['right'].set_color('#007ccd')
-    species_freq_axis.spines['right'].set_color('#007ccd')
-    depth_axis.tick_params(axis='y', colors='#007ccd')
-    depth_axis.tick_params(axis='y', which='minor', colors='#007ccd')
+        depth_axis = species_freq_axis.twinx()
+        depth_axis.set_ylabel('Marker coverage',color='#007ccd',rotation=270,labelpad=10)
+        for tl in depth_axis.get_yticklabels():
+            tl.set_color('#007ccd')
+        depth_axis.spines['top'].set_visible(False)
+        depth_axis.spines['right'].set_color('#007ccd')
+        species_freq_axis.spines['right'].set_color('#007ccd')
+        depth_axis.tick_params(axis='y', colors='#007ccd')
+        depth_axis.tick_params(axis='y', which='minor', colors='#007ccd')
     
-    depth_axis.set_ylim([2,2e03])
-    depth_axis.set_xlim([0,160])   
+        depth_axis.set_ylim([2,2e03])
+        depth_axis.set_xlim([0,160])   
+        
     
-    
-    freq_axis = axes[2*species_idx+1]
+    freq_axis = axes[fig_idx]
+    fig_idx+=1
     
     if additional_titles[species_idx]=="":
         title_text = '%s diversity' % species_name

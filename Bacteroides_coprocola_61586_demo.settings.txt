@@ -1,0 +1,39 @@
+######################################################
+#
+# Make a copy of this file and edit it to your liking
+#
+######################################################
+
+# Which population to plot
+species_names = ['Bacteroides_coprocola_61586']
+
+
+# Output filename (alter as needed)
+filename = parse_midas_data.analysis_directory+'Bacteroides_coprocola_61586_demo_timecourse.png'
+
+min_coverage=20
+
+####################################################################
+#
+#  Function controlling which mutations are colored
+#
+#      Returns: true for colored
+#               false for not colored
+#
+####################################################################
+def color_condition(population_idx, chromosome, location, gene_name, variant_type, times, freqs, depths):
+
+    idx_80 = numpy.fabs(times-81).argmin()
+    idx_10 = numpy.fabs(times-11).argmin()
+    idx_36 = numpy.fabs(times-36).argmin()
+    idx_47 = numpy.fabs(times-47).argmin()
+    idx_75 = numpy.fabs(times-75).argmin()
+    # don't use interpolated freqs yet.    
+    
+    condition = (freqs[idx_80]>0.8)*(freqs[-1]>0.8)*(freqs[idx_36]<0.8)*(gene_name=='470145.6.peg.214')
+    
+    if condition:
+    
+        print chromosome, location, gene_name, variant_type
+    
+    return condition

@@ -34,7 +34,10 @@ def color_condition(population_idx, gene_name, times, gene_copynums, marker_cove
         max_normal_coverage = gene_copynums[normal_coverage_idxs].max()
         min_normal_coverage = gene_copynums[normal_coverage_idxs].min()
         
-        if ((gene_copynums>=(max_normal_coverage*16))*(marker_coverages>=20)).any() or ((gene_copynums<=(min_normal_coverage/16))*(marker_coverages>=20)).any():
+        # copy number increase?
+        #if ((gene_copynums>=(max_normal_coverage*10))*(marker_coverages>=20)).any() or
+        
+        if ((gene_copynums<=(min_normal_coverage/10))*(marker_coverages>=20)).any()*(gene_copynums[0]<0.3):
             condition = True
             
     return condition
