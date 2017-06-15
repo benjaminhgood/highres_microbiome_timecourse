@@ -1,39 +1,42 @@
 import os
 import pandas as pd
-import pickle
 import pysam
 
 def get_read(samfile, fastafile, header, start):
+    start = int(start)
     end = start+1
-
-    samfile = pysam.AlignmentFile(args.bam, "rb")
-    fastafile = pysam.FastaFile(args.fasta)
-    
     read = []
-    
+
     for pileupcolumn in samfile.pileup(header, start, end):
         for pileupread in pileupcolumn.pileups:
-            if (pileupcolumn.pos == args.start):
-               read.extend(pileupread.alignment.query_name)
+            if (pileupcolumn.pos == start):
+               read.append(str(pileupread.alignment.query_name))
 
     read = str(read)
-    samfile.close()
-    fastafile.close()
-
     return read
 
+cwd = os.getcwd()
 
 #unzip snp files
-os.system('gunzip output/*.gz')
+os.system('gunzip '+cwd+'/output/*.gz')
 
 #generate bam index files
-os.system('samtools index temp/genomes.bam temp/genomes.bam.bai')
+os.system('samtools index '+cwd+'/temp/genomes.bam '+cwd+'/temp/genomes.bam.bai')
 
-flist = os.listdir('output/')
+sampath = cwd+'/temp/genomes.bam'
+fastapath = cwd+'/temp/genomes.fa'
+
+samfile = pysam.AlignmentFile(sampath, 'rb')
+fastafile = pysam.FastaFile(fastapath)
+
+flist = os.listdir(cwd+'/output')
 
 for f in flist:
     spec_name = os.path.splitext(f)[0]
-    df = pd.read_csv(args.path+f, delimiter='\t')
+    df = pd.read_csv('~/test_path/output/'+f, delimiter='\t')
     df = df.dropna()
     df['reads'] = df.apply(lambda row: get_read(samfile, fastafile, row['ref_id'], row['ref_pos']), axis=1)
     df.to_csv(spec_name+'_snps_reads.csv', sep='\t')
+
+samfile.close()
+fastafile.close()
