@@ -960,7 +960,7 @@ def parse_snps(species_name, debug=False, allowed_samples=[], allowed_genes=[], 
          
     snp_file.close()
 
-    print line_number, final_line_number, num_sites_processed
+    #print line_number, final_line_number, num_sites_processed
 
     for gene_name in passed_sites_map.keys():
         for variant_type in passed_sites_map[gene_name].keys():
