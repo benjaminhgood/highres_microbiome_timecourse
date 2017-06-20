@@ -146,6 +146,9 @@ for species_idx in xrange(0,len(species_names)):
     depth_axis.set_ylim([2,2e03])
     depth_axis.set_xlim([0,160])   
     
+    depth_axis.set_zorder(0)
+    species_freq_axis.set_zorder(1)  
+        
     
     copynum_axis = axes[2*species_idx+1]
     
@@ -163,6 +166,15 @@ for species_idx in xrange(0,len(species_names)):
     
     copynum_axis.set_xlim([0,160])   
     copynum_axis.set_ylim([1e-01,100])
+    
+    copynum_axis.fill_between([parse_timecourse_data.antibiotic_start, parse_timecourse_data.antibiotic_end],[1e-01,1e-01],[100,100],color=parse_timecourse_data.antibiotics_color,linewidth=0)
+    copynum_axis.fill_between([parse_timecourse_data.lyme_infection, parse_timecourse_data.antibiotic_start],[1e-01,1e-01],[100,100],color=parse_timecourse_data.lyme_color,linewidth=0)
+    copynum_axis.plot([parse_timecourse_data.hrv_infection, parse_timecourse_data.hrv_infection], [1e-01,100], 'k-',linewidth=0.25,zorder=-1)
+    
+    depth_axis.fill_between([parse_timecourse_data.antibiotic_start, parse_timecourse_data.antibiotic_end],[2,2],[2e03,2e03],color=parse_timecourse_data.antibiotics_color,linewidth=0,zorder=-1)
+    depth_axis.fill_between([parse_timecourse_data.lyme_infection, parse_timecourse_data.antibiotic_start],[2,2],[2e03,2e03],color=parse_timecourse_data.lyme_color,linewidth=0,zorder=-1)
+    depth_axis.plot([parse_timecourse_data.hrv_infection, parse_timecourse_data.hrv_infection], [2,2e03], 'k-',linewidth=0.25,zorder=-1)
+    
     
     num_colored_mutations = 0
     num_total_mutations = 0

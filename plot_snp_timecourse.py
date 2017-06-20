@@ -100,10 +100,17 @@ fig, axes = plt.subplots(num_unique_species+len(species_names),sharex=True,share
 fig_idx = 0
 freq_axis = None
 
-old_species_name=""    
+old_species_name=""  
+
+print species_names
+
+print len(species_names)  
 for species_idx in xrange(0,len(species_names)):        
 
+    print species_idx, species_names[species_idx]
+
     species_name = species_names[species_idx]
+    
     
     sys.stderr.write("Processing %s...\n" % species_name)
     
@@ -134,7 +141,7 @@ for species_idx in xrange(0,len(species_names)):
             sys.stderr.write("Done! Loaded %d genes\n" % len(allele_counts_map.keys()))
     
             if len(samples)<5:
-                break
+                continue
      
     
             sample_ts, sample_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, samples)
@@ -168,6 +175,10 @@ for species_idx in xrange(0,len(species_names)):
                     
         sys.stderr.write("Done!\n")
         
+        if len(samples)<5:
+            continue
+     
+        
         if len(alt_matrix)>0:     
             alt_matrix = numpy.vstack(alt_matrix)
             depth_matrix = numpy.vstack(depth_matrix) 
@@ -198,8 +209,15 @@ for species_idx in xrange(0,len(species_names)):
         depth_axis.tick_params(axis='y', which='minor', colors='#007ccd')
     
         depth_axis.set_ylim([2,2e03])
-        depth_axis.set_xlim([0,160])   
+        depth_axis.set_xlim([0,160]) 
         
+        depth_axis.set_zorder(0)
+        species_freq_axis.set_zorder(1)  
+        
+        depth_axis.fill_between([parse_timecourse_data.antibiotic_start, parse_timecourse_data.antibiotic_end],[2,2],[2e03,2e03],color=parse_timecourse_data.antibiotics_color,linewidth=0,zorder=-1)
+        depth_axis.fill_between([parse_timecourse_data.lyme_infection, parse_timecourse_data.antibiotic_start],[2,2],[2e03,2e03],color=parse_timecourse_data.lyme_color,linewidth=0,zorder=-1)
+        depth_axis.plot([parse_timecourse_data.hrv_infection, parse_timecourse_data.hrv_infection], [2,2e03], 'k-',linewidth=0.25,zorder=-1)
+    
     
     freq_axis = axes[fig_idx]
     fig_idx+=1
@@ -219,6 +237,10 @@ for species_idx in xrange(0,len(species_names)):
     freq_axis.set_xlim([0,160])   
     freq_axis.set_ylim([0,1.02])
     
+    freq_axis.fill_between([parse_timecourse_data.antibiotic_start, parse_timecourse_data.antibiotic_end],[0,0],[1.02,1.02],color=parse_timecourse_data.antibiotics_color,linewidth=0)
+    freq_axis.fill_between([parse_timecourse_data.lyme_infection, parse_timecourse_data.antibiotic_start],[0,0],[1.02,1.02],color=parse_timecourse_data.lyme_color,linewidth=0)
+    freq_axis.plot([parse_timecourse_data.hrv_infection, parse_timecourse_data.hrv_infection], [0,1.02], 'k-',linewidth=0.25,zorder=-1)
+    
     num_colored_mutations = 0
     num_total_mutations = 0
 
@@ -226,7 +248,7 @@ for species_idx in xrange(0,len(species_names)):
     species_freqs = species_freq_matrix[species_idx_map[species_name],:]
     
     depth_axis.semilogy(marker_coverage_times[marker_coverages>0], marker_coverages[marker_coverages>0],'.-',color='#007ccd',markersize=3)
-    species_freq_axis.semilogy(species_times[species_freqs>0], species_freqs[species_freqs>0],'k.-',markersize=3)
+    species_freq_axis.semilogy(species_times[species_freqs>0], species_freqs[species_freqs>0],'k.-',markersize=3,zorder=4)
     
     if species_freqs[species_freqs>0].min() < 1e-04:
         print species_freqs[species_freqs>0].min()

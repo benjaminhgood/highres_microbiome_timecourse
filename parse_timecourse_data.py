@@ -5,6 +5,15 @@ import gene_diversity_utils
 
 focal_patient = 'patient0'
 
+hrv_infection = 36
+lyme_infection = 41
+antibiotic_start = 53
+antibiotic_end = 70
+
+antibiotics_color = '#bdd7e7'
+lyme_color = '#eff3ff'
+
+
 ###############################################################################
 #
 # Loads metadata for HMP samples 

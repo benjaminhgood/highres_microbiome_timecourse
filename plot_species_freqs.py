@@ -72,6 +72,15 @@ alpha_axis.spines['right'].set_visible(False)
 alpha_axis.get_xaxis().tick_bottom()
 alpha_axis.get_yaxis().tick_left()
 
+freq_axis.fill_between([parse_timecourse_data.antibiotic_start, parse_timecourse_data.antibiotic_end],[1e-04,1e-04],[1,1],color=parse_timecourse_data.antibiotics_color,linewidth=0)
+freq_axis.fill_between([parse_timecourse_data.lyme_infection, parse_timecourse_data.antibiotic_start],[1e-04,1e-04],[1,1],color=parse_timecourse_data.lyme_color,linewidth=0)
+freq_axis.plot([parse_timecourse_data.hrv_infection, parse_timecourse_data.hrv_infection], [1e-04,1], 'k-',linewidth=0.25,zorder=-1)
+
+alpha_axis.fill_between([parse_timecourse_data.antibiotic_start, parse_timecourse_data.antibiotic_end],[2,2],[4,4],color=parse_timecourse_data.antibiotics_color,linewidth=0)
+alpha_axis.fill_between([parse_timecourse_data.lyme_infection, parse_timecourse_data.antibiotic_start],[2,2],[4,4],color=parse_timecourse_data.lyme_color,linewidth=0)
+alpha_axis.plot([parse_timecourse_data.hrv_infection, parse_timecourse_data.hrv_infection], [2,4], 'k-',linewidth=0.25,zorder=-1)
+       
+
 alpha_axis.set_ylim([2,4])
 
 alpha_axis.set_xlim([0,160])
@@ -169,6 +178,9 @@ focal_legend_axis.spines['bottom'].set_visible(False)
 focal_legend_axis.set_xticks([])
 focal_legend_axis.set_yticks([])  
 
+focal_freq_axis.fill_between([parse_timecourse_data.antibiotic_start, parse_timecourse_data.antibiotic_end],[1e-04,1e-04],[1,1],color=parse_timecourse_data.antibiotics_color,linewidth=0)
+focal_freq_axis.fill_between([parse_timecourse_data.lyme_infection, parse_timecourse_data.antibiotic_start],[1e-04,1e-04],[1,1],color=parse_timecourse_data.lyme_color,linewidth=0)
+focal_freq_axis.plot([parse_timecourse_data.hrv_infection, parse_timecourse_data.hrv_infection], [1e-04,1], 'k-',linewidth=0.25,zorder=-1)
 
 
 good_species_list = []
@@ -187,12 +199,12 @@ for i in xrange(0,len(species)):
         if species[i].startswith('Bacteroides'):
             linewidth=1.5
             alpha=1
-            zorder=1
+            zorder=4
             symbol = 's'
         else:
             linewidth=0.5
             alpha=0.5
-            zorder=0
+            zorder=1
             symbol = 'o'
         
         line, = freq_axis.semilogy(ts, species_freqs,'.-',markersize=3,linewidth=linewidth,alpha=alpha,zorder=zorder)
