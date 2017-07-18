@@ -36,6 +36,9 @@ def color_condition(population_idx, chromosome, location, gene_name, variant_typ
         # Highest freq guys at last timepoint
         condition = (freqs[-1] > 0.6)*(freqs[-2]<0.5)*(gene_name in core_genes)
     
+        if condition:
+            print '\t'.join(['Bacteroides_vulgatus_57955', chromosome, str(location)])
+    
     elif population_idx==1:
         # Highest freq guys at last timepoint
         # but not on a core gene

@@ -55,7 +55,9 @@ species_freq_matrix = species_coverage_matrix*1.0/(species_coverage_matrix.sum(a
 
 desired_samples = numpy.array(samples)[species_time_idxs]
 
-desired_species = ['Bacteroides_vulgatus_57955']   
+#desired_species = ['Bacteroides_vulgatus_57955'] 
+
+desired_species = parse_midas_data.parse_good_species_list()  
 print "\t".join(["species_id","contig","pos"]) 
 for species_name in desired_species:       
     
@@ -71,6 +73,8 @@ for species_name in desired_species:
     while final_line_number >= 0:
     
         sys.stderr.write("Loading chunk starting @ %d...\n" % final_line_number)
+        if debug:
+            sys.stderr.write("(in debug mode)\n")
         samples, allele_counts_map, passed_sites_map, final_line_number = parse_midas_data.parse_snps(species_name, debug=debug, allowed_variant_types=set(['1D','2D','3D','4D']),chunk_size=chunk_size,allowed_samples=desired_samples, initial_line_number=final_line_number)
         sys.stderr.write("Done! Loaded %d genes\n" % len(allele_counts_map.keys()))
     
