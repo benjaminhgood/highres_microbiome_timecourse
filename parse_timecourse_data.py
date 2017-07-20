@@ -10,8 +10,18 @@ lyme_infection = 41
 antibiotic_start = 53
 antibiotic_end = 70
 
+highcoverage_start_1 = "6037"
+highcoverage_start_2 = "6038.1"
+highcoverage_antibiotic = "1014.2"
+highcoverage_end = "6041"
+
+highcoverage_samples = set([highcoverage_start_1, highcoverage_start_2, highcoverage_antibiotic, highcoverage_end])
+
 antibiotics_color = '#bdd7e7'
 lyme_color = '#eff3ff'
+
+
+
 
 
 ###############################################################################
@@ -114,9 +124,10 @@ def calculate_timecourse_idxs(sample_time_map, desired_samples, min_time=1):
                 times.append(time)
                 
     times, idxs = zip(*sorted(zip(times, idxs)))
+    times = numpy.array(times)
+    idxs = numpy.array(idxs)
     
-    return numpy.array(times), numpy.array(idxs)
-    
+    return times, idxs
     
 ###############################################################################
 #

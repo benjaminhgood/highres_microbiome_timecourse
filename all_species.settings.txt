@@ -22,7 +22,6 @@ filename = parse_midas_data.analysis_directory+'all_species_timecourse.png'
 ####################################################################
 def color_condition(population_idx, chromosome, location, gene_name, variant_type, times, freqs, depths):
     
-    
     #condition = (freqs.max()-freqs.min() > 0.8)
     condition = (freqs[0]<0.05)*(freqs[1]<0.05)*((freqs.max()-freqs.min()) > 0.5)
     # Examples:

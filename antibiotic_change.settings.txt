@@ -1,0 +1,52 @@
+######################################################
+#
+# Make a copy of this file and edit it to your liking
+#
+######################################################
+
+# Which population to plot
+species_names = parse_midas_data.parse_good_species_list()
+
+# Output filename
+filename = parse_midas_data.analysis_directory+'antibiotic_snp_change_timecourse.png'
+
+
+####################################################################
+#
+#  Function controlling which mutations are colored
+#
+#      Returns: true for colored
+#               false for not colored
+#
+####################################################################
+def color_condition(population_idx, chromosome, location, gene_name, variant_type, times, freqs, depths):
+    
+    start_idxs = (times==sample_time_map[parse_timecourse_data.highcoverage_start_2])
+    antibiotic_idxs = (times==sample_time_map[parse_timecourse_data.highcoverage_antibiotic])
+    
+    if (start_idxs.sum() > 0) and (antibiotic_idxs.sum() > 0):
+        
+        
+        one_present = ((freqs>=0.8)[antibiotic_idxs]).any()
+        one_absent = ((freqs<=0.2)[start_idxs]).any()   
+        
+        condition = one_present and one_absent
+        
+    else:
+        condition = False
+    
+    #condition = (freqs.max()-freqs.min() > 0.8)
+    #condition = (freqs[0]<0.05)*(freqs[1]<0.05)*((freqs.max()-freqs.min()) > 0.5)
+    # Examples:
+    # 
+    # Mutation is in the majority at the end of the experiment
+    # condition = f(60000) > 0.5
+    #
+    # Mutation is a structural variant in the nadR gene
+    # condition = (gene_name == 'nadR') and var_type='sv'
+    #
+    # Mutation is in one of the mut* genes
+    # condition = gene_name.startswith('mut')
+    # ... 
+    
+    return condition

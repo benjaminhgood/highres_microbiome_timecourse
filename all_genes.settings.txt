@@ -22,11 +22,25 @@ def color_condition(population_idx, gene_name, times, gene_copynums, marker_cove
         
     # don't use interpolated freqs yet.    
     
+    start_idxs = (times==sample_time_map[parse_timecourse_data.highcoverage_start_2])
+    antibiotic_idxs = (times==sample_time_map[parse_timecourse_data.highcoverage_antibiotic])
+    
+    if (start_idxs.sum() > 0) and (antibiotic_idxs.sum() > 0):
+        
+        one_present = ((gene_copynums>=0.5)*(gene_copynums<=2))[numpy.logical_or(start_idxs, antibiotic_idxs)].any()
+        one_absent =  (gene_copynums<=0.05)[numpy.logical_or(start_idxs, antibiotic_idxs)].any()   
+        
+        condition = one_present and one_absent
+        
+    else:
+        condition = False
+    
     # First two conditions require mutation to start at low frequency
     # i.e., to focus on "de novo" mutations
-    if gene_name in antibiotic_resistance_genes:
-        condition=True
-    else:
-        condition=False
+    #if gene_name in antibiotic_resistance_genes:
+    #    condition=True
+    #else:
+    #    condition=False
     
+
     return condition

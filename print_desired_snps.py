@@ -32,10 +32,14 @@ min_coverage = 5
 ################################################################################
 import argparse
 parser = argparse.ArgumentParser()
+parser.add_argument("settings_filename", help="settings file")
+parser.add_argument("output_filename", help="output file")
 parser.add_argument("--debug", help="Loads only a subset of SNPs for speed", action="store_true")
 parser.add_argument("--chunk-size", type=int, help="max number of records to load", default=1000000000)
 args = parser.parse_args()
 
+settings_filename = args.settings_filename
+output_filename = args.output_filename
 debug = args.debug
 chunk_size = args.chunk_size
 ################################################################################
@@ -55,11 +59,16 @@ species_freq_matrix = species_coverage_matrix*1.0/(species_coverage_matrix.sum(a
 
 desired_samples = numpy.array(samples)[species_time_idxs]
 
-#desired_species = ['Bacteroides_vulgatus_57955'] 
 
-desired_species = parse_midas_data.parse_good_species_list()  
-print "\t".join(["species_id","contig","pos"]) 
-for species_name in desired_species:       
+# load settings
+settings_file = open(settings_filename,"r")
+settings_string = "\n".join(settings_file.readlines())
+settings_file.close()
+exec settings_string    
+
+output_items = {}
+for species_idx in xrange(0,len(species_names)):
+    species_name = species_names[species_idx]
     
     sys.stderr.write("Processing %s...\n" % species_name)
     
@@ -115,8 +124,7 @@ for species_name in desired_species:
         
     if len(samples)<5:
         continue
-     
-        
+           
     if len(alt_matrix)>0:     
         alt_matrix = numpy.vstack(alt_matrix)
         depth_matrix = numpy.vstack(depth_matrix) 
@@ -146,8 +154,19 @@ for species_name in desired_species:
         if (masked_freqs>0.1).sum() < 2:
             continue
         
-        print "\t".join([species_name, snp_infos[mutation_idx][0], str(snp_infos[mutation_idx][1])])
-         
+        if color_condition(species_idx, chromosome, location, gene_name, variant_type, masked_times, masked_freqs, masked_depths):
         
+            output_str = "\t".join([species_name, snp_infos[mutation_idx][0], str(snp_infos[mutation_idx][1])])
+        
+            output_key = (species_idx, chromosome, location)
+            output_items[output_key] = output_str
+
+output_file = open(output_filename,"w")        
+output_file.write( "\t".join(["species_id","contig","pos"]) )
+output_file.write("\n")
+for output_key in sorted(output_items.keys()):
+    output_file.write(output_items[output_key])
+    output_file.write("\n")                     
+output_file.close()       
 sys.stderr.write("Done!\n")
 

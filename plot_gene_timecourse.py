@@ -64,7 +64,7 @@ COLORED_LINEWIDTH=0.5
 PLOT_APPEARANCE_TIME=False
 
 # Mininum coverage for frequency estimation vs interpolation 
-min_coverage = 20
+min_coverage = 10
 
 
 # load settings
@@ -165,7 +165,7 @@ for species_idx in xrange(0,len(species_names)):
     copynum_axis.get_yaxis().tick_left()
     
     copynum_axis.set_xlim([0,160])   
-    copynum_axis.set_ylim([1e-01,100])
+    copynum_axis.set_ylim([1e-02,2])
     
     copynum_axis.fill_between([parse_timecourse_data.antibiotic_start, parse_timecourse_data.antibiotic_end],[1e-01,1e-01],[100,100],color=parse_timecourse_data.antibiotics_color,linewidth=0)
     copynum_axis.fill_between([parse_timecourse_data.lyme_infection, parse_timecourse_data.antibiotic_start],[1e-01,1e-01],[100,100],color=parse_timecourse_data.lyme_color,linewidth=0)
@@ -205,7 +205,7 @@ for species_idx in xrange(0,len(species_names)):
             continue
     
         masked_gene_copynums = gene_copynums[marker_coverages>=min_coverage]
-        masked_times = times[marker_coverages>=min_coverage] 
+        masked_times = times[marker_coverages>=min_coverage]
         masked_marker_coverages = marker_coverages[marker_coverages>=min_coverage]
     
         

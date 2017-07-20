@@ -287,6 +287,7 @@ for species_idx in xrange(0,len(species_names)):
          
         interpolation_function = timecourse_utils.create_interpolation_function(masked_times, masked_freqs)
         
+        
         if color_condition(species_idx, chromosome, location, gene_name, variant_type, masked_times, masked_freqs, masked_depths):
         
             # One of the colored ones!

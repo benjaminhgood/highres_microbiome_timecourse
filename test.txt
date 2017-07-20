@@ -1,0 +1,6 @@
+species_id	contig	pos
+Bacteroides_coprocola_61586	NZ_DS981474	9903
+Bacteroides_coprocola_61586	NZ_DS981505	142557
+Bacteroides_coprocola_61586	NZ_DS981506	2133
+Bacteroides_coprocola_61586	NZ_DS981509	153413
+Bacteroides_coprocola_61586	NZ_DS981510	23750
