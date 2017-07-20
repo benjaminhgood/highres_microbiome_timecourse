@@ -5,7 +5,7 @@ import gzip
 
 def parse_allele_barcodes(species_name, sample_name):
     
-    barcode_filename = "%s/%s/barcodes/output/%s.barcodes.gz"
+    barcode_filename = "%s/%s/barcodes/output/%s.barcodes.gz" % (config.barcode_directory, sample_name, species_name)
     
     barcode_file = gzip.GzipFile(barcode_filename,"r")
     barcode_file.readline()
@@ -13,6 +13,7 @@ def parse_allele_barcodes(species_name, sample_name):
     allele_barcode_map = {}
     
     for line in barcode_file:
+        line = line.strip()
         items = line.split("\t")
         allele = items[0].strip()
         allele_barcode_map[allele] = []
@@ -24,7 +25,7 @@ def parse_allele_barcodes(species_name, sample_name):
                 barcode_subitems = barcode_item.split(":")
                 barcode_id = long(barcode_subitems[0])
                 
-                allele_barcode_map[allele].append(barcode)
+                allele_barcode_map[allele].append(barcode_id)
                 
     return allele_barcode_map
     

@@ -798,9 +798,9 @@ def pipe_snps(species_name, min_nonzero_median_coverage=5, lower_factor=0.3, upp
         
         
         # polarize SNP based on consensus in entire dataset
-        if total_alts>total_refs:
-            alts,refs = refs,alts
-            total_alts, total_refs = total_refs, total_alts
+        #if total_alts>total_refs:
+        #    alts,refs = refs,alts
+        #    total_alts, total_refs = total_refs, total_alts
         
         # print string
         read_strs = ["%g,%g" % (A,A+R) for A,R in zip(alts, refs)]
@@ -1145,11 +1145,14 @@ def parse_pangenome_data(species_name, allowed_samples = [], allowed_genes=[]):
     gene_reads_matrix = numpy.array(gene_reads_matrix)
 
     # Make sure the centroid names reflect genes on the reference genome
-    new_gene_names = []
-    centroid_gene_map = load_centroid_gene_map(species_name)
-    for gene_name in gene_names:
-        new_gene_names.append(centroid_gene_map[gene_name])
-
+    #new_gene_names = []
+    #centroid_gene_map = load_centroid_gene_map(species_name)
+    #for gene_name in gene_names:
+    #    new_gene_names.append(centroid_gene_map[gene_name])
+    
+    # Let's not do this for Morteza's data, since we want to go
+    # back and look at barcodes of specific genes.
+    new_gene_names = gene_names
     return desired_samples, new_gene_names, gene_presence_matrix, gene_depth_matrix, marker_coverages, gene_reads_matrix
 
 ###############################################################################

@@ -33,11 +33,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument("settings_filename", help="settings file")
 parser.add_argument("--debug", help="Loads only a subset of SNPs for speed", action="store_true")
 parser.add_argument("--chunk-size", type=int, help="max number of records to load", default=1000000000)
+parser.add_argument('--output-filename', type=str, help='Store colored genes')
 args = parser.parse_args()
+
 
 settings_filename = args.settings_filename
 debug = args.debug
 chunk_size = args.chunk_size
+output_filename = args.output_filename
+
 ################################################################################
 
 sample_time_map = parse_timecourse_data.parse_sample_time_map()
@@ -90,6 +94,8 @@ fig, axes = plt.subplots(2*len(species_names),sharex=True,sharey=False,figsize=(
 #    axes = [axes]
 
 freq_axis = None
+
+output_items = {}
     
 for species_idx in xrange(0,len(species_names)):        
 
@@ -212,6 +218,11 @@ for species_idx in xrange(0,len(species_names)):
         
         if color_condition(species_idx, gene_name, masked_times, masked_gene_copynums, masked_marker_coverages):
         
+            output_str = "\t".join([species_name, gene_name])
+        
+            output_key = (species_idx, gene_name)
+            output_items[output_key] = output_str
+        
             # One of the colored ones!
             num_colored_mutations+=1
             
@@ -232,6 +243,15 @@ for species_idx in xrange(0,len(species_names)):
 copynum_axis.set_xlabel('Time, $t$ (days)')
 
 copynum_axis.set_xlim([0,160])   
+ 
+if output_filename:       
+    output_file = open(output_filename,"w")        
+    output_file.write( "\t".join(["species_id","gene_name"]) )
+    output_file.write("\n")
+    for output_key in sorted(output_items.keys()):
+        output_file.write(output_items[output_key])
+        output_file.write("\n")                     
+    output_file.close()  
  
 sys.stderr.write("Saving final PNG image...\t")
 fig.savefig(filename, bbox_inches='tight', dpi=300, transparent=True)

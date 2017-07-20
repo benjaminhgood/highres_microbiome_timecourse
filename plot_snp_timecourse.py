@@ -33,11 +33,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument("settings_filename", help="settings file")
 parser.add_argument("--debug", help="Loads only a subset of SNPs for speed", action="store_true")
 parser.add_argument("--chunk-size", type=int, help="max number of records to load", default=1000000000)
+parser.add_argument('--output-filename', type=str, help='Store colored snps')
 args = parser.parse_args()
+
 
 settings_filename = args.settings_filename
 debug = args.debug
 chunk_size = args.chunk_size
+output_filename = args.output_filename
+
 ################################################################################
 
 sample_time_map = parse_timecourse_data.parse_sample_time_map()
@@ -105,6 +109,10 @@ old_species_name=""
 print species_names
 
 print len(species_names)  
+
+output_items = {}
+ 
+
 for species_idx in xrange(0,len(species_names)):        
 
     print species_idx, species_names[species_idx]
@@ -153,11 +161,11 @@ for species_idx in xrange(0,len(species_names)):
     
             chunk_alts = chunk_alts[:,sample_idxs]
             chunk_depths = chunk_depths[:,sample_idxs]
-            # polarize using first timepoint
-            chunk_alts += (chunk_depths-2*chunk_alts)*(((chunk_alts[:,0]+chunk_alts[:,1])>((chunk_depths[:,0]+chunk_depths[:,1])/2))[:,None])
-    
-            desired_sites = ((chunk_alts>(0.1*chunk_depths)).sum(axis=1)>2)*((chunk_depths>0).sum(axis=1)>10)
-    
+            
+            polymorphic_timepoints = numpy.logical_or(chunk_alts>(0.1*chunk_depths), chunk_alts<(0.9*chunk_depths) )
+            
+            desired_sites = (polymorphic_timepoints.sum(axis=1)>2)*((chunk_depths>0).sum(axis=1)>10)
+            
             chunk_alts = chunk_alts[desired_sites,:]
             chunk_depths = chunk_depths[desired_sites,:]
             chunk_allele_freqs = chunk_alts*1.0/(chunk_depths+(chunk_depths==0))
@@ -278,9 +286,11 @@ for species_idx in xrange(0,len(species_names)):
         masked_freqs = freqs[depths>=min_coverage]
         masked_depths = depths[depths>=min_coverage]
         
+        allele='A'
         
         if masked_freqs[0]>0.5:
             masked_freqs = 1-masked_freqs
+            allele='R'
             
         if (masked_freqs>0.1).sum() < 2:
             continue
@@ -289,6 +299,12 @@ for species_idx in xrange(0,len(species_names)):
         
         
         if color_condition(species_idx, chromosome, location, gene_name, variant_type, masked_times, masked_freqs, masked_depths):
+        
+            
+            output_str = "\t".join([species_name, snp_infos[mutation_idx][0], str(snp_infos[mutation_idx][1]), allele, str(species_idx)])
+        
+            output_key = (species_idx, chromosome, location)
+            output_items[output_key] = output_str
         
             # One of the colored ones!
             num_colored_mutations+=1
@@ -310,6 +326,16 @@ for species_idx in xrange(0,len(species_names)):
 freq_axis.set_xlabel('Time, $t$ (days)')
 
 freq_axis.set_xlim([0,160])   
+
+if output_filename:
+    output_file = open(output_filename,"w")        
+    output_file.write( "\t".join(["species_id","contig","pos", "allele", "group"]) )
+    output_file.write("\n")
+    for output_key in sorted(output_items.keys()):
+        output_file.write(output_items[output_key])
+        output_file.write("\n")                     
+    output_file.close()    
+
  
 sys.stderr.write("Saving final PNG image...\t")
 fig.savefig(filename, bbox_inches='tight', dpi=300, transparent=True)
