@@ -1,0 +1,332 @@
+# Nandita's documentation file
+
+##########################################################
+#
+#  March 17, 2017
+#  Run MIDAS with the standard database on Snyder's data
+###########################################################
+
+# path where data lives:
+/srv/gsfs0/projects/snyder/hayanlee/projects/meta-gut/contigs/IDBA_UD/
+
+# get a list of all time pts:
+ls /srv/gsfs0/projects/snyder/hayanlee/projects/meta-gut/contigs/IDBA_UD/  | grep -v run > ~/snyder_project/timepts.txt
+
+# run a test on HMP data
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_test
+
+# now, run MIDAS on the real data set. 
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_species_snps_cnvs
+
+
+######################################################################
+# 
+# March 30, 2017
+# Rerun MIDAS on some samples -- didn't finish in time allotted
+#
+######################################################################
+
+# move samples to scratch as there is no more space
+qsub /home/ngarud/snyder_project/qsub_scripts/qsub_mv_files
+
+# write a qsub script to grep the problematic strings from the files that are not completeing. 
+
+qsub /home/ngarud/snyder_project/qsub_scripts/debug_grep_sample_8
+qsub /home/ngarud/snyder_project/qsub_scripts/debug_grep_sample_9
+qsub /home/ngarud/snyder_project/qsub_scripts/debug_grep_sample_11
+qsub /home/ngarud/snyder_project/qsub_scripts/debug_grep_sample_12
+
+
+# rerun species on these samples:
+8,9,10,11
+rm ~/snyder_project/timepts_rerun_species.txt
+for i in 8 9 10 11; do
+    cat ~/snyder_project/timepts.txt | head -$i | tail -1 >> ~/snyder_project/timepts_rerun_species.txt
+done
+
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_species_rerun   
+
+
+# rerun genes on these samples:
+samples=( 1 2 4 12 15 16 18 19 )
+
+rm ~/snyder_project/timepts_rerun_cnvs.txt
+for i in  1 2 4 12 15 16 18 19; do
+    cat ~/snyder_project/timepts.txt | head -$i | tail -1 >> ~/snyder_project/timepts_rerun_cnvs.txt
+done
+
+# output to /srv/gsfs0/scratch/ngarud
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_cnvs_rerun
+
+# run cnvs on these samples:
+for i in 8 9 10 11; do
+    cat ~/snyder_project/timepts.txt | head -$i | tail -1 >> ~/snyder_project/timepts_rerun_cnvs_2.txt
+done
+
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_cnvs_rerun_2
+
+# rerun snps on these samples:
+2,12,15,16,18
+
+rm ~/snyder_project/timepts_rerun_snps.txt
+for i in  2 12 15 16 18; do
+    cat ~/snyder_project/timepts.txt | head -$i | tail -1 >> ~/snyder_project/timepts_rerun_snps.txt
+done
+
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_snps_rerun
+
+
+# rerun species on these samples:
+8,9,10,11,12
+
+for i in 8 9 10 11 12 16 18; do
+    cat ~/snyder_project/timepts.txt | head -$i | tail -1 >> ~/snyder_project/timepts_rerun_snps_2.txt
+done
+
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_snps_rerun_2
+
+###
+# rerun SNPs on these samples:
+for i in 4 9 11 12 15 18 19; do
+    cat ~/snyder_project/timepts.txt | head -$i | tail -1 >> ~/snyder_project/timepts_rerun_snps_3.txt  
+done
+
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_snps_rerun_3
+
+
+##########################################################
+#
+# Merge species, cnvs, snps
+#
+#
+##########################################################
+
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_cnvs_merge
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_species_merge
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_snps_merge
+
+
+# bzip 
+
+qsub /home/ngarud/snyder_project/qsub_scripts/bzip_snps
+qsub /home/ngarud/snyder_project/qsub_scripts/bzip_genes
+qsub /home/ngarud/snyder_project/qsub_scripts/bzip_species
+
+# mv everything to /srv/gsfs0/projects/snyder/ngarud
+
+qsub /home/ngarud/snyder_project/qsub_scripts/move_files_to_projects
+
+##########################################################
+#
+# March 24, 2017
+# Do something with contigs
+#
+##########################################################
+
+# USEARCH -- attempt to cluster the contigs
+
+module load usearch/7.0.1090
+
+data=/srv/gsfs0/projects/snyder/hayanlee/projects/meta-gut/contigs/IDBA_UD
+
+input=${data}/1014.2/contig.1014.2.fa
+output=/home/ngarud/snyder_project/USEARCH_output/1014.2.nr.fasta
+
+usearch -cluster_fast $input -id 0.95 -centroids $output
+
+# prokka -- attempt to annotate genes in the contigs
+
+module load prokka
+
+output=/home/ngarud/snyder_project/prokka_output/1014.2_prokka_out.txt
+prokka $input > $output
+
+# module load blast
+
+
+#########################################################
+# Run postprocesssing MIDAS steps on the data
+#########################################################                                                  
+#compile the error_pvalues cpp code as follows:
+module load gcc/4.7.0
+g++ -std=c++11 -O3 *.cpp -o annotate_pvalue
+                      
+python ~/ben_nandita_hmp_scripts/print_good_species_list.py name> ~/tmp_intermediate_files/tmp_species_list.txt
+
+#######################
+# Draw a traffic plot #
+#######################
+module load python/2.7
+python ~/highres_microbiome_timecourse_scripts/plot_snp_timecourse.py Bacteroides_vulgatus_57955.settings.txt --debug
+
+
+python ~/highres_microbiome_timecourse_scripts/plot_snp_timecourse.py Alistipes_onderdonkii_55464.settings.txt --debug
+
+python ~/highres_microbiome_timecourse_scripts/plot_snp_timecourse.py Faecalibacterium_prausnitzii_61481.settings.txt --debug
+
+python ~/highres_microbiome_timecourse_scripts/plot_snp_timecourse.py Bacteroides_uniformis_57318.settings.txt --debug
+
+
+python ~/highres_microbiome_timecourse_scripts/plot_snp_timecourse.py Eubacterium_eligens_61678.settings.txt --debug
+
+python ~/highres_microbiome_timecourse_scripts/plot_snp_timecourse.py Odoribacter_splanchnicus_62174.settings.txt --debug
+
+
+##################################################################
+#
+# May 15, 2017
+# Reformat the fastq files so that MIDAS outputs the barcode info
+# Rerun MIDAS on this reformatted data
+#
+##################################################################
+
+# path where data lives:
+/srv/gsfs0/projects/snyder/hayanlee/projects/meta-gut/contigs/IDBA_UD/
+
+# way to convert the fastq files. 
+cat input.fastq | python /srv/gsfs0/projects/snyder/bhgood/barcode_readnames.py > output.fastq 
+
+# qsub script:
+qsub /home/ngarud/snyder_project/qsub_scripts/convert_data_run_midas_species
+
+# rerun conversion and species for 1 sample:
+qsub /home/ngarud/snyder_project/qsub_scripts/convert_data_run_midas_species_rerun
+
+# rerun spcies for those who failed
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_species_barcode_rerun
+
+
+# snps
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_snps_barcode
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_snps_barcode_rerun
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_snps_barcode_rerun_6041
+
+# genes
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_genes_barcode
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_genes_barcode_rerun
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_genes_barcode_rerun_6041
+
+
+# Merge
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_cnvs_merge
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_species_merge
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_snps_merge
+
+
+#bzip
+qsub /home/ngarud/snyder_project/qsub_scripts/bzip_snps
+qsub /home/ngarud/snyder_project/qsub_scripts/bzip_genes
+qsub /home/ngarud/snyder_project/qsub_scripts/bzip_species
+
+
+##############################
+# June 21
+# run_midas.py barcodes
+##############################
+
+run_midas.py barcodes 1022 --10x --desired-snps desired_snps.txt
+
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_barcode_module
+qsub /home/ngarud/snyder_project/qsub_scripts/MIDAS_barcode_module_rerun
+
+
+########################################################## 
+# September 5 2017
+# identify novel gene clusters from Morteza's gene annotation
+##########################################################  
+
+# morteza's genes:
+/srv/gsfs0/projects/snyder/wenyu/LongReads_10X/IDBA
+
+# store the output here:
+mkdir ~/highres_microbiome_timecourse_analysis/novel_centroids
+
+
+################################# 
+# Blast 
+# blast Morteza's genes against centroids (later should we blast against original patric genomes)?
+#################################
+module load blast
+
+# first concatenate all the fasta files for all centroids in the midas db
+
+rm ~/highres_microbiome_timecourse_analysis/novel_centroids/centroids_all_species.ffn.gz
+while read species; do
+    echo $species
+    cat /home/ngarud/midas_db/pan_genomes/${species}/centroids.ffn.gz >> ~/highres_microbiome_timecourse_analysis/novel_centroids/centroids_all_species.ffn.gz     
+done < ~/highres_microbiome_timecourse_analysis/novel_centroids/species_list.txt
+
+# make the blastdb:
+
+gunzip ~/highres_microbiome_timecourse_analysis/novel_centroids/centroids_all_species.ffn.gz
+
+makeblastdb -in ~/highres_microbiome_timecourse_analysis/novel_centroids/centroids_all_species.ffn -out ~/highres_microbiome_timecourse_analysis/novel_centroids/centroids_all_species_db -dbtype nucl
+
+# fasta files of the genes identified for each of the 19 time points:
+/srv/gsfs0/projects/snyder/wenyu/LongReads_10X/IDBA/prodigal_NT/
+
+# in parallel, run blastn on all the gene files from each time point
+
+blastn -db ~/highres_microbiome_timecourse_analysis/novel_centroids/centroids_all_species_db -query /srv/gsfs0/projects/snyder/wenyu/LongReads_10X/IDBA/prodigal_NT/${timept}.prodigal.fa -outfmt 6 -out /srv/gsfs0/projects/snyder/ngarud/BLAST_prodigal_genes/${timept}_blast.txt
+
+qsub ~/snyder_project/qsub_scripts/BLAST_prodigal
+
+
+
+
+#######################################
+# usearch for blast:
+# This does a global alignment
+# preferable, but slower than BLAST
+####################################
+
+
+/srv/gsfs0/projects/snyder/wenyu/usearch61 -usearch_global /srv/gsfs0/projects/snyder/wenyu/LongReads_10X/IDBA/prodigal_NT/${timept}.prodigal.fa -db ~/highres_microbiome_timecourse_analysis/novel_centroids/centroids_all_species.ffn -id 0.95 -strand both -blast6out /srv/gsfs0/projects/snyder/ngarud/Usearch_BLAST_prodigal/${timept}_usearch_blast.b6
+
+
+qsub ~/snyder_project/qsub_scripts/Usearch_BLAST_prodigal
+
+##############################################################
+# parse blast output
+# retain only those genes that have poor matches/no matches
+##############################################################  
+# python script to parse blast output (run in parallel for all time points)
+
+python parse_prodigal_blast.py $timept
+qsub ~/snyder_project/qsub_scripts/parse_prodigal_blast
+
+# concatenate all fasta sequences for unknown genes into 1 file accross all time points. 
+rm /srv/gsfs0/projects/snyder/ngarud/unannotated_prodigal_genes/all_timepts_unannotated_prodigal_genes.fa
+cat /srv/gsfs0/projects/snyder/ngarud/unannotated_prodigal_genes/* > /srv/gsfs0/projects/snyder/ngarud/unannotated_prodigal_genes/all_timepts_unannotated_prodigal_genes.fa
+
+#############################
+# usearch
+##############################
+
+module load usearch/7.0.1090
+
+# test fasta sequence:
+fasta=/home/ngarud/midas_db/marker_genes/phyeco.fa
+usearch -cluster_fast $fasta -id 0.95 -centroids nr.fasta -uc clusters.uc
+
+# run usearch on the genes that have poor/no blast matches
+fasta=/srv/gsfs0/projects/snyder/ngarud/unannotated_prodigal_genes/all_timepts_unannotated_prodigal_genes.fa
+
+/srv/gsfs0/projects/snyder/wenyu/usearch61 -cluster_fast $fasta -id 0.95 -centroids /srv/gsfs0/projects/snyder/ngarud/unique_prodigal_genes/unique_prodigal_centroids.fa -uc /srv/gsfs0/projects/snyder/ngarud/unique_prodigal_genes/unique_prodigal_centroids.uc
+
+qsub ~/snyder_project/qsub_scripts/Usearch_cluster_prodigal
+
+# python script to parse the uclust output. 
+# data lives here:
+/srv/gsfs0/projects/snyder/ngarud/unique_prodigal_genes/unique_prodigal_centroids.fa
+/srv/gsfs0/projects/snyder/ngarud/unique_prodigal_genes/unique_prodigal_centroids.uc
+
+# create a directory with the new species information for running MIDAS
+
+# i.centroid_functions.txt.gz  -- list of gene names in the centroids.ffn.gz file
+# ii.centroids.ffn.gz  -- replicates what is in the fasta file output of usearch
+# iii.gene_info.txt.gz – List of all genes with their centroid mapping. Could be comprehensive but may not be necessary (i.e. I could just list the centroids only). 
+
+
+python parse_usearch.py
+
