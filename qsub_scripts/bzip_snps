@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#$ -N MIDAS_CNVs_rerun        #-- set the name of the job; this will appear in the job listing
+#$ -l h_vmem=2G                      #-- set the maximum memory usage (per slot). on scg3 the default is 1GB of h_vmem per slot
+#$ -l h_rt=168:00:00                 #-- set the maximum run time, hh:mm:ss, default is 6hrs on scg3
+#$ -w e                              #-- check for errors in the job submission options
+#$ -j y                              #-- join the stdout and stderr streams into one file
+#$ -o ~/output_error_directory       #-- output directory 
+#$ -e ~/output_error_directory       #-- error directory   
+#$ -t 1-71                           #-- specify the number of tasks 
+
+readarray files < /srv/gsfs0/projects/snyder/ngarud/MIDAS_output/merged_output/snps/species_snps.txt
+files=(null ${files[@]}) # this pads the file with an extra line in the beginning.
+species=${files[$SGE_TASK_ID]}
+
+DIR=/srv/gsfs0/projects/snyder/ngarud/MIDAS_output/merged_output
+
+bzip2 ${DIR}/snps/${species}/snps_depth.txt
+bzip2 ${DIR}/snps/${species}/snps_info.txt
+bzip2 ${DIR}/snps/${species}/snps_ref_freq.txt
+bzip2 ${DIR}/snps/${species}/snps_alt_allele.txt

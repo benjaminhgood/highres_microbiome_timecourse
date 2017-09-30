@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#$ -N midas_barcode_module        #-- set the name of the job; this will appear in the job listing
+#$ -l h_vmem=25G                      #-- set the maximum memory usage (per slot). on scg3 the default is 1GB of h_vmem per slot
+#$ -l h_rt=168:00:00                 #-- set the maximum run time, hh:mm:ss, default is 6hrs on scg3
+#$ -w e                              #-- check for errors in the job submission options
+#$ -j y                              #-- join the stdout and stderr streams into one file
+#$ -o ~/output_error_directory       #-- output directory 
+#$ -e ~/output_error_directory       #-- error directory   
+#$ -t 1-18                           #-- specify the number of tasks 
+
+readarray files < ~/snyder_project/timepts/timepts2.txt
+files=(null ${files[@]}) # this pads the file with an extra line in the beginning.
+timept=${files[$SGE_TASK_ID]}
+
+
+module load python/2.7.9 
+
+export PYTHONPATH=$PYTHONPATH:/home/ngarud/snyder_project/software/MIDAS
+export PATH=$PATH:/home/ngarud/snyder_project/software/MIDAS/scripts
+export MIDAS_DB=/home/ngarud/snyder_project/software/midas_db_v1.2
+
+echo $timept
+
+OUTDIR=/srv/gsfs0/projects/snyder/ngarud/MIDAS_output
+
+echo 'running barcode module...'
+
+run_midas.py barcodes ${OUTDIR}/${timept} --10x --desired-snps /home/ngarud/snyder_project/desired_snps.txt
+
+echo 'done!'

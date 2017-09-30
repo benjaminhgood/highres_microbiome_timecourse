@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#$ -N MIDAS_CNVs_rerun        #-- set the name of the job; this will appear in the job listing
+#$ -l h_vmem=2G                      #-- set the maximum memory usage (per slot). on scg3 the default is 1GB of h_vmem per slot
+#$ -l h_rt=168:00:00                 #-- set the maximum run time, hh:mm:ss, default is 6hrs on scg3
+#$ -w e                              #-- check for errors in the job submission options
+#$ -j y                              #-- join the stdout and stderr streams into one file
+#$ -o ~/output_error_directory       #-- output directory 
+#$ -e ~/output_error_directory       #-- error directory   
+#$ -t 1-1                           #-- specify the number of tasks 
+
+
+DIR=/srv/gsfs0/projects/snyder/ngarud/MIDAS_output/merged_output
+bzip2 ${DIR}/species/coverage.txt
+bzip2 ${DIR}/species/count_reads.txt
+bzip2 ${DIR}/species/relative_abundance.txt
+bzip2 ${DIR}/species/species_prevalence.txt
