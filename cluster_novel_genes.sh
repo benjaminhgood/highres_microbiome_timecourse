@@ -59,9 +59,17 @@ module load usearch/7.0.1090
 # run usearch on the genes that have poor/no blast matches
 fasta=/srv/gsfs0/projects/snyder/ngarud/unannotated_prodigal_genes/all_timepts_unannotated_prodigal_genes.fa
 
-/srv/gsfs0/projects/snyder/wenyu/usearch61 -cluster_fast $fasta -id 0.95 -centroids /srv/gsfs0/projects/snyder/ngarud/unique_prodigal_genes/unique_prodigal_centroids.fa -uc /srv/gsfs0/projects/snyder/ngarud/unique_prodigal_genes/unique_prodigal_centroids.uc
+/srv/gsfs0/projects/snyder/wenyu/usearch61 -cluster_fast $fasta -id 0.99 -centroids /srv/gsfs0/projects/snyder/ngarud/unique_prodigal_genes/unique_prodigal_centroids_99.fa -uc /srv/gsfs0/projects/snyder/ngarud/unique_prodigal_genes/unique_prodigal_centroids_99.uc
 
-qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/Usearch_cluster_prodigal
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/Usearch_cluster_prodigal_99
+
+# then cluster again at the 95% level
+fasta=/srv/gsfs0/projects/snyder/ngarud/unique_prodigal_genes/unique_prodigal_centroids_99.fa
+
+/srv/gsfs0/projects/snyder/wenyu/usearch61 -cluster_fast $fasta -id 0.95 -centroids /srv/gsfs0/projects/snyder/ngarud/unique_prodigal_genes/unique_prodigal_centroids_95.fa -uc /srv/gsfs0/projects/snyder/ngarud/unique_prodigal_genes/unique_prodigal_centroids_95.uc
+
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/Usearch_cluster_prodigal_95
+
 
 # python script to parse the uclust output and generate pangenome MIDAS files. 
 
