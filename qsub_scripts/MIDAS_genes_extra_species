@@ -1,0 +1,33 @@
+#!/bin/bash
+
+#$ -N MIDAS_genes_extra_species        #-- set the name of the job; this will appear in the job listing
+#$ -l h_vmem=5G                      #-- set the maximum memory usage (per slot). on scg3 the default is 1GB of h_vmem per slot
+#$ -l h_rt=168:00:00                 #-- set the maximum run time, hh:mm:ss, default is 6hrs on scg3
+#$ -w e                              #-- check for errors in the job submission options
+#$ -j y                              #-- join the stdout and stderr streams into one file
+#$ -o ~/output_error_directory       #-- output directory 
+#$ -e ~/output_error_directory       #-- error directory   
+#$ -t 1-19                           #-- specify the number of tasks 
+
+readarray files < ~/highres_microbiome_timecourse_scripts/timepts.txt
+files=(null ${files[@]}) # this pads the file with an extra line in the beginning.
+timept=${files[$SGE_TASK_ID]}
+
+module load python/2.7.9 
+
+export PYTHONPATH=$PYTHONPATH:/home/ngarud/snyder_project/software/MIDAS
+export PATH=$PATH:/home/ngarud/snyder_project/software/MIDAS/scripts
+export MIDAS_DB=/home/ngarud/snyder_project/software/midas_db_v1.2
+
+
+echo $timept
+
+OUTDIR=/srv/gsfs0/projects/snyder/ngarud/MIDAS_output/${timept}
+mkdir $OUTDIR
+indir=/srv/gsfs0/projects/snyder/hayanlee/projects/meta-gut/contigs/IDBA_UD
+
+
+echo 'snps'
+
+run_midas.py genes $OUTDIR -1 $indir/${timept}/demux.${timept}.rmbc.tl20.trim.clean.r1.fastq -2 $indir/${timept}/demux.${timept}.rmbc.tl25.trim.clean.r2.fastq -t 10 --extra_species_file ~/tmp_intermediate_files/genes_species_union.txt
+
