@@ -15,8 +15,36 @@ highcoverage_start_2 = "6038.1"
 highcoverage_antibiotic = "1014.2"
 highcoverage_end = "6041"
 
-highcoverage_samples = set([highcoverage_start_1, highcoverage_start_2, highcoverage_antibiotic, highcoverage_end])
-
+morteza_samples = ['6037',
+           '6037.2',
+           '6037.3',
+           '6038.1',
+           '1021',
+           '1022',
+           '1022.1',
+           '1023',
+           '1014.2',
+           '1025',
+           '4021A',
+           '4021.1A',
+           '4022',
+           '4023', #4023.1 absent
+           '4024.1', #4025 absent
+           '4025.4',
+           '4026',
+           '4026.2',
+           '6041']
+           
+highcoverage_samples = ['6037',
+                        '6038.1',
+                        '1021',
+                        '1022.1',
+                        '1014.2',
+                        '4021A',
+                        '4023',
+                        '4025',
+                        '6041']
+                        
 antibiotics_color = '#bdd7e7'
 lyme_color = '#eff3ff'
 
