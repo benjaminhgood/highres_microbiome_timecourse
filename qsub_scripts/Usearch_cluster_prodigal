@@ -1,0 +1,19 @@
+#!/bin/bash
+
+#$ -N cluster_prodigal           #-- set the name of the job; this will appear in the job listing
+#$ -l h_vmem=300G                      #-- set the maximum memory usage (per slot). on scg3 the default is 1GB of h_vmem per slot
+#$ -l h_rt=168:00:00                 #-- set the maximum run time, hh:mm:ss, default is 6hrs on scg3
+#$ -w e                              #-- check for errors in the job submission options
+#$ -j y                              #-- join the stdout and stderr streams into one file
+#$ -o ~/output_error_directory       #-- output directory 
+#$ -e ~/output_error_directory       #-- error directory   
+#$ -t 1-1                           #-- specify the number of tasks 
+
+
+#module load usearch/7.0.1090 
+
+fasta=/srv/gsfs0/projects/snyder/ngarud/unannotated_prodigal_genes/all_timepts_unannotated_prodigal_genes.fa
+
+/srv/gsfs0/projects/snyder/wenyu/usearch61 -cluster_fast $fasta -id 0.95 -centroids /srv/gsfs0/projects/snyder/ngarud/unique_prodigal_genes/unique_prodigal_centroids.fa -uc /srv/gsfs0/projects/snyder/ngarud/unique_prodigal_genes/unique_prodigal_centroids.uc
+
+

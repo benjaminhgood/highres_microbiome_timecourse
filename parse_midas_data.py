@@ -1613,6 +1613,31 @@ def load_kegg_annotations(gene_names):
                     elif kegg_pathway_tmp[0] =='':
                         kegg_ids[gene_name].append(['',''])
     return kegg_ids
+
+
+##########################################################
+#
+# parse the pre-merged species file to get a list of species at at least 3x coverage
+#
+#########################################################
+
+def parse_intermediate_species_file(inFN):
+    inFile=open(inFN,'r')
+
+    species_list=[]
+    inFile.readline() #header
+    for line in inFile:
+        items=line.strip().split('\t')
+        species_id=items[0]
+        coverage=float(items[2])
+        if coverage >=3.0: 
+            species_list.append(species_id)
+
+    return set(species_list)
+
+
+
+
 #######################    
 
 if __name__=='__main__':

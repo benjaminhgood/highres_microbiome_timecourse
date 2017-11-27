@@ -1,0 +1,18 @@
+#!/bin/bash
+
+#$ -N blast_prodigal           #-- set the name of the job; this will appear in the job listing
+#$ -l h_vmem=300G                      #-- set the maximum memory usage (per slot). on scg3 the default is 1GB of h_vmem per slot
+#$ -l h_rt=168:00:00                 #-- set the maximum run time, hh:mm:ss, default is 6hrs on scg3
+#$ -w e                              #-- check for errors in the job submission options
+#$ -j y                              #-- join the stdout and stderr streams into one file
+#$ -o ~/output_error_directory       #-- output directory 
+#$ -e ~/output_error_directory       #-- error directory   
+#$ -t 1-19                           #-- specify the number of tasks 
+
+readarray files < ~/snyder_project/timepts/timepts.txt
+files=(null ${files[@]}) # this pads the file with an extra line in the beginning.
+timept=${files[$SGE_TASK_ID]}
+
+/srv/gsfs0/projects/snyder/wenyu/usearch61 -usearch_global /srv/gsfs0/projects/snyder/wenyu/LongReads_10X/IDBA/prodigal_NT/${timept}.prodigal.fa -db ~/highres_microbiome_timecourse_analysis/novel_centroids/centroids_all_species.ffn -id 0.95 -strand both -blast6out /srv/gsfs0/projects/snyder/ngarud/Usearch_BLAST_prodigal/${timept}_usearch_blast.b6
+
+

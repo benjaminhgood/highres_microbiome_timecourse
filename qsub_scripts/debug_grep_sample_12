@@ -1,0 +1,22 @@
+#!/bin/bash
+
+#$ -N debug_sample_12        #-- set the name of the job; this will appear in the job listing
+#$ -l h_vmem=2G                      #-- set the maximum memory usage (per slot). on scg3 the default is 1GB of h_vmem per slot
+#$ -l h_rt=168:00:00                 #-- set the maximum run time, hh:mm:ss, default is 6hrs on scg3
+#$ -w e                              #-- check for errors in the job submission options
+#$ -j y                              #-- join the stdout and stderr streams into one file
+#$ -o ~/output_error_directory       #-- output directory 
+#$ -e ~/output_error_directory       #-- error directory   
+#$ -t 1-1                           #-- specify the number of tasks 
+
+#readarray files < ~/snyder_project/timepts_rerun_species.txt
+#files=(null ${files[@]}) # this pads the file with an extra line in the beginning.
+#timept=${files[$SGE_TASK_ID]}
+
+echo "sample 12"
+
+echo "r1"
+cat /srv/gsfs0/projects/snyder/hayanlee/projects/meta-gut/contigs/IDBA_UD/4025.4/demux.4025.4.rmbc.tl20.trim.clean.r1.fastq | grep -n '6COOPER:46:HF3T5BBXX:5:1117:29843:23346_105' 
+
+echo "r2"
+cat /srv/gsfs0/projects/snyder/hayanlee/projects/meta-gut/contigs/IDBA_UD/4025.4/demux.4025.4.rmbc.tl25.trim.clean.r2.fastq | grep -n '6COOPER:46:HF3T5BBXX:5:1117:29843:23346_105'
