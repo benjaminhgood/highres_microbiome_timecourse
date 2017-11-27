@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#$ -N MIDAS_CNVs_rerun        #-- set the name of the job; this will appear in the job listing
-#$ -l h_vmem=2G                      #-- set the maximum memory usage (per slot). on scg3 the default is 1GB of h_vmem per slot
+#$ -N MIDAS_CNVs_merge        #-- set the name of the job; this will appear in the job listing
+#$ -l h_vmem=300G                      #-- set the maximum memory usage (per slot). on scg3 the default is 1GB of h_vmem per slot
 #$ -l h_rt=168:00:00                 #-- set the maximum run time, hh:mm:ss, default is 6hrs on scg3
 #$ -w e                              #-- check for errors in the job submission options
 #$ -j y                              #-- join the stdout and stderr streams into one file
@@ -20,5 +20,5 @@ export MIDAS_DB=/home/ngarud/snyder_project/software/midas_db_v1.2
 OUTDIR=/srv/gsfs0/projects/snyder/ngarud/MIDAS_output/merged_output
 INDIR=/srv/gsfs0/projects/snyder/ngarud/MIDAS_output/
 
-merge_midas.py genes $OUTDIR/genes -i $INDIR -t dir --sample_depth 10 --min_samples 1 --max_species 150 >& $OUTDIR/genes.log
+merge_midas.py genes $OUTDIR/genes -i $INDIR -t dir --sample_depth 1 --min_samples 1 --max_species 150 >& $OUTDIR/genes.log
 

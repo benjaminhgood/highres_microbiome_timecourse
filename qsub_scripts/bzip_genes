@@ -7,7 +7,7 @@
 #$ -j y                              #-- join the stdout and stderr streams into one file
 #$ -o ~/output_error_directory       #-- output directory 
 #$ -e ~/output_error_directory       #-- error directory   
-#$ -t 1-73                           #-- specify the number of tasks 
+#$ -t 1-82                           #-- specify the number of tasks 
 
 readarray files < /srv/gsfs0/projects/snyder/ngarud/MIDAS_output/merged_output/genes/species_genes.txt
 files=(null ${files[@]}) # this pads the file with an extra line in the beginning.

@@ -26,6 +26,6 @@ OUTDIR=/srv/gsfs0/projects/snyder/ngarud/MIDAS_output
 
 echo 'running barcode module...'
 
-run_midas.py barcodes ${OUTDIR}/${timept} --10x --desired-snps /home/ngarud/snyder_project/desired_snps.txt
+run_midas.py barcodes ${OUTDIR}/${timept} --10x --desired-snps /home/ngarud/snyder_project/desired_snps.txt --extra_species_file ~/tmp_intermediate_files/genes_species_union.txt
 
 echo 'done!'
