@@ -113,6 +113,8 @@ def calculate_total_from_histogram(histogram):
 ####
 def calculate_unnormalized_survival_from_vector(xs, min_x=None, max_x=None, min_p=1e-10):
 
+    xs = numpy.array(xs)
+
     if min_x==None:
         min_x = xs.min()-1
     
@@ -136,7 +138,21 @@ def calculate_unnormalized_survival_from_vector(xs, min_x=None, max_x=None, min_
     num_observations[-1] += min_p    
     
     return numpy.array(xvalues), numpy.array(num_observations)
-     
+ 
+def calculate_IQR_from_distribution(xs, ns):
+    
+    weights = ns*1.0/ns.sum()
+    CDF = numpy.cumsum(weights)
+    upper_idx = numpy.nonzero(CDF>=0.75)[0][0]
+    lower_idx = numpy.nonzero(CDF>=0.25)[0][0]
+    
+    return xs[lower_idx], xs[upper_idx]
+
+def calculate_median_from_distribution(xs, ns):
+    weights = ns*1.0/ns.sum()
+    CDF = numpy.cumsum(weights)
+    mid_idx = numpy.nonzero(CDF>=0.5)[0][0]
+    return xs[mid_idx]
     
 ####
 #
@@ -153,13 +169,15 @@ def calculate_IQR_from_histogram(histogram):
     
     return xs[upper_idx]-xs[lower_idx]
     
+
+    
 ####
 #
 # Calculates "confidence intervals" on rate from Poisson distribution 
 # based on n>=0 counts at L>=0 sites.
 #
 ####
-def calculate_poisson_rate_interval(n,L,alpha=0.05):
+def calculate_poisson_rate_interval(n,L,alpha=0.5): # by default use a 50% confidence interval
     
     if n<0.5:
         # No counts. Have some info on upper bound, but none on lower bound.

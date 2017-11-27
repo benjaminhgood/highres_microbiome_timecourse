@@ -1048,6 +1048,17 @@ def parse_within_sample_pi(species_name, allowed_genes=set([]), allowed_variant_
 
     return numpy.array(samples), total_pi, total_opportunities
 
+
+def parse_pangenome_species():
+    pangenome_species = []
+    species_genes_file = open('%sgenes/species_genes.txt' % data_directory,"r")
+    for line in species_genes_file:
+        if line.startswith('species_genes.txt'):
+            continue
+    
+        pangenome_species.append(line.strip())
+    return pangenome_species
+
 ###############################################################################
 #
 # Loads MIDAS's pangenome coverage data for a given species 
@@ -1115,7 +1126,7 @@ def parse_pangenome_data(species_name, allowed_samples = [], allowed_genes=[]):
         gene_name = items[0]
         gene_presences = numpy.array([float(item) for item in items[1:]])[desired_sample_idxs]
         
-        if gene_presences.sum() > 0.5:
+        if True: #gene_presences.sum() > 0.5:
         
             gene_reads = numpy.array([float(item) for item in reads_line.split()[1:]])[desired_sample_idxs]
             gene_depths = numpy.array([float(item) for item in depth_line.split()[1:]])[desired_sample_idxs]
@@ -1124,7 +1135,6 @@ def parse_pangenome_data(species_name, allowed_samples = [], allowed_genes=[]):
             #gene_lengths = gene_reads/(gene_depths+(gene_reads<0.5))
             #print gene_lengths
             
-            # gene is present in at least one individual! 
             gene_presence_matrix.append(gene_presences)
             gene_depth_matrix.append(gene_depths)
             gene_reads_matrix.append(gene_reads)

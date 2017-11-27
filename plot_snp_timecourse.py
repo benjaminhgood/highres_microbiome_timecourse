@@ -52,12 +52,11 @@ species_coverage_matrix, samples, species = parse_midas_data.parse_global_marker
 species_idx_map = {species[i]: i for i in xrange(0,len(species))}
 sample_time_map = parse_timecourse_data.parse_sample_time_map()
 
-species_times, species_time_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, samples)
+
 
 species_coverage_matrix = species_coverage_matrix[:,species_time_idxs]
 species_freq_matrix = species_coverage_matrix*1.0/(species_coverage_matrix.sum(axis=0))
 
-desired_samples = numpy.array(samples)[species_time_idxs]
     
 
 PLOT_FMAJOR=None
