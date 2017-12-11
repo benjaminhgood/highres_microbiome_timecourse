@@ -97,7 +97,6 @@ min_abundances = numpy.array(min_abundances)
 pangenome_species = parse_midas_data.parse_pangenome_species()
 #pangenome_species = ['Bacteroides_vulgatus_57955', 'new_species']
 
-
 reference_abundances = {i:[] for i in xrange(0,len(coverage_to_abundance_factor))}
 assembly_abundances = {i:[] for i in xrange(0,len(coverage_to_abundance_factor))}
 

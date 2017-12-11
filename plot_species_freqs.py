@@ -36,7 +36,8 @@ ts, sample_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_ma
 species_coverage_matrix = species_coverage_matrix[:,sample_idxs]
 
 total_coverage = species_coverage_matrix.sum(axis=0)
-species_freq_matrix = species_coverage_matrix*1.0/total_coverage    
+species_freq_matrix = numpy.clip(species_coverage_matrix*1.0/total_coverage,1e-07, 2)    
+
 
 shannon_diversity = -1*(species_freq_matrix*numpy.log(species_freq_matrix+(species_freq_matrix==0))).sum(axis=0)
 
@@ -53,8 +54,10 @@ trajectory_grid = gridspec.GridSpecFromSubplotSpec(2, 1, height_ratios=[1,1],
 freq_axis = plt.Subplot(fig, trajectory_grid[0])
 fig.add_subplot(freq_axis)
 
-freq_axis.set_ylabel('Species abundance (marker gene)')
-freq_axis.set_ylim([1e-04,1])
+freq_axis.set_ylabel('Species abundance')
+#freq_axis.set_ylim([1e-04,1])
+freq_axis.set_ylim([-0.01,0.4])
+ 
  
 freq_axis.spines['top'].set_visible(False)
 freq_axis.spines['right'].set_visible(False)
@@ -194,9 +197,13 @@ for i in xrange(0,len(species)):
     clipped_species_freqs = numpy.clip(species_freqs,1e-04,1)
     prevalence = (species_coverages>=min_marker_coverage).sum()
     
-    if (species_coverages>=20).sum() >= 2:
+    if (species_freqs>5e-02).any(): #(species_coverages>=20).sum() >= 2:
         
-        if species[i].startswith('Bacteroides'):
+        #if species[i].startswith('Bacteroides'):
+        
+        fold_change = numpy.fabs(numpy.log10(species_freqs.max()/species_freqs.min()))
+        
+        if False: #fold_change >= 1:
             linewidth=1.5
             alpha=1
             zorder=4
@@ -207,7 +214,7 @@ for i in xrange(0,len(species)):
             zorder=1
             symbol = 'o'
         
-        line, = freq_axis.semilogy(ts, species_freqs,'.-',markersize=3,linewidth=linewidth,alpha=alpha,zorder=zorder)
+        line, = freq_axis.plot(ts, species_freqs,'.-',markersize=3,linewidth=linewidth,alpha=alpha,zorder=zorder)
         colorVal = pylab.getp(line,'color')
         legend_axis.plot([-2,-1],[-2,-1],'.-',markersize=3,markeredgewidth=0.0, label=species[i],alpha=alpha,linewidth=linewidth)
         
@@ -219,7 +226,7 @@ for i in xrange(0,len(species)):
             colorVal = pylab.getp(line,'color')
             change_legend_axis.plot([-2,-1],[-2,-1],symbol,markersize=3,markeredgewidth=0.0, label=species[i],alpha=alpha,linewidth=linewidth)
             
-            focal_freq_axis.semilogy(ts, clipped_species_freqs,'.-',markersize=3,linewidth=linewidth,alpha=alpha,zorder=zorder)
+            focal_freq_axis.plot(ts, clipped_species_freqs,'.-',markersize=3,linewidth=linewidth,alpha=alpha,zorder=zorder)
             focal_legend_axis.plot([-2,-1],[-2,-1],'.-',markersize=3,markeredgewidth=0.0, label=species[i],alpha=alpha,linewidth=linewidth)
             
         else:

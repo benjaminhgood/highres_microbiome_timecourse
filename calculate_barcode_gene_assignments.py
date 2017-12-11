@@ -19,6 +19,8 @@ pangenome_species = parse_midas_data.parse_pangenome_species()
 longgene_id_map = {}
 id_longgene_map = []
 
+total_candidate_genes = set()
+
 # Run this algorithm separately for each sample. 
 # BG: should we combine across samples? Pros: more data. Cons: could have switching across species between timepoints. 
 desired_samples = parse_timecourse_data.morteza_samples
@@ -85,9 +87,9 @@ for sample_name in desired_samples:
     
     all_genes = 0
     barcode_genes = 0
-    candidate_genes = 0
     unique_genes = 0
     non_unique_genes = 0
+    candidate_genes = set()
     for line in barcode_file:
         line = line.strip()
         items = line.split("\t")
@@ -95,8 +97,8 @@ for sample_name in desired_samples:
         
         all_genes += 1
         
-        if (all_genes % 10000) == 0:
-            print all_genes, barcode_genes, candidate_genes
+        if (all_genes % 100000) == 0:
+            print all_genes, barcode_genes, len(candidate_genes)
         
         # Make sure there are barcodes to look at
         if len(items)==1:
@@ -117,20 +119,63 @@ for sample_name in desired_samples:
         
                 
         num_barcodes = 0
-        #longgene_id_counter = collections.Counter()
         
         for barcode_id in barcode_ids:
             if barcode_id in barcode_longgene_ids_map:
                 num_barcodes += 1
-                #longgene_id_counter.update( barcode_longgene_ids_map[barcode_id] )
-        
-        continue
-                            
+                    
         # only look at genes with a decent number of barcodes            
         if num_barcodes<5:
             continue
         
         barcode_genes += 1 
+        
+        longgene_id_set = set()
+        num_duplicates = 0
+        for barcode_id in barcode_ids:
+            if barcode_id in barcode_longgene_ids_map:
+                if not longgene_id_set.isdisjoint( barcode_longgene_ids_map[barcode_id] ):
+                    num_duplicates += 1
+                
+                longgene_id_set.update( barcode_longgene_ids_map[barcode_id] )
+        
+        if num_duplicates >= 0.5*num_barcodes:    
+            candidate_genes.add(gene_name)
+    
+    barcode_file.close()
+    
+    print len(candidate_genes), "pre-candidate genes"
+    
+    #total_candidate_genes.update(candidate_genes)
+    #continue 
+     
+    new_candidate_genes = set()
+    
+    barcode_file = gzip.GzipFile(barcode_filename,"r")
+    barcode_file.readline() # skip header
+    for line in barcode_file:
+        line = line.strip()
+        items = line.split("\t")
+        gene_name = items[0].strip()
+        
+        if gene_name not in candidate_genes:
+            continue
+        
+        # Get barcode ids    
+        barcode_items = items[1].split(",")
+        
+        barcode_ids = []
+        for barcode_item in barcode_items:
+            barcode_subitems = barcode_item.split(":")
+            barcode_id = long(barcode_subitems[0])
+            barcode_ids.append(barcode_id)
+                
+        num_barcodes = 0
+        longgene_id_counter = collections.Counter()
+        for barcode_id in barcode_ids:
+            if barcode_id in barcode_longgene_ids_map:
+                num_barcodes += 1
+                longgene_id_counter.update( barcode_longgene_ids_map[barcode_id] )
         
         # calculate max longgene weight:
         max_longgene_id, max_longgene_weight = longgene_id_counter.most_common(1)[0]
@@ -141,7 +186,8 @@ for sample_name in desired_samples:
         if max_longgene_weight < 0.5*num_barcodes:
             continue
             
-        candidate_genes += 1
+        new_candidate_genes.add(gene_name)
+        
         
         # make a deeper species->gene->weight_map
         #species_gene_weight_map = {}
@@ -161,10 +207,14 @@ for sample_name in desired_samples:
         #    print num_barcodes, max_species_weight, max_longgene_weight
         #    print species_gene_weight_map
             #print species_weight_map.values()
+    
+    total_candidate_genes.update(new_candidate_genes)
             
     sys.stderr.write("Done!\n")
     sys.stderr.write("%d total genes\n" % all_genes)
     sys.stderr.write("%d barcode covered genes\n" % barcode_genes)
-    sys.stderr.write("%d candidate genes\n" % candidate_genes)
+    sys.stderr.write("%d candidate genes\n" % len(total_candidate_genes))
     
-
+    
+sys.stderr.write("Done!\n")
+sys.stderr.write("%d candidate genes\n" % len(total_candidate_genes))

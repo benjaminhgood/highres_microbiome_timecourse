@@ -1051,12 +1051,15 @@ def parse_within_sample_pi(species_name, allowed_genes=set([]), allowed_variant_
 
 def parse_pangenome_species():
     pangenome_species = []
-    species_genes_file = open('%sgenes/species_genes.txt' % data_directory,"r")
-    for line in species_genes_file:
-        if line.startswith('species_genes.txt'):
-            continue
     
-        pangenome_species.append(line.strip())
+    species_list = parse_depth_sorted_species_list()
+    
+    for species_name in species_list:
+    
+        gene_directory = '%sgenes/%s' % (data_directory, species_name)
+        if os.path.isdir(gene_directory):
+            pangenome_species.append(species_name)
+    pangenome_species.append('new_species')       
     return pangenome_species
 
 ###############################################################################

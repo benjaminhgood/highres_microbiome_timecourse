@@ -12,6 +12,8 @@ antibiotic_end = 70
 
 highcoverage_start_1 = "6037"
 highcoverage_start_2 = "6038.1"
+highcoverage_hrv = "1021"
+highcoverage_lyme = "1022.1"
 highcoverage_antibiotic = "1014.2"
 highcoverage_end = "6041"
 
@@ -150,8 +152,10 @@ def calculate_timecourse_idxs(sample_time_map, desired_samples, min_time=1):
             if time>=min_time:
                 idxs.append(i)
                 times.append(time)
-                
-    times, idxs = zip(*sorted(zip(times, idxs)))
+    
+    if len(idxs)>0:        
+        times, idxs = zip(*sorted(zip(times, idxs)))
+    
     times = numpy.array(times)
     idxs = numpy.array(idxs)
     

@@ -131,7 +131,12 @@ for species_name in pangenome_species:
     gene_samples, gene_names, gene_presence_matrix, gene_depth_matrix, marker_coverages, gene_reads_matrix =     parse_midas_data.parse_pangenome_data(species_name)
     sys.stderr.write("Done!\n")
 
+    
     species_times, species_time_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, gene_samples)
+    
+    if len(species_times)==0:
+        continue
+
     desired_gene_samples = numpy.array(gene_samples)[species_time_idxs]
 
     print gene_depth_matrix.shape
