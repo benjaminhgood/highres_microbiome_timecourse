@@ -327,6 +327,85 @@ qsub ~/snyder_project/qsub_scripts/Usearch_cluster_prodigal
 # ii.centroids.ffn.gz  -- replicates what is in the fasta file output of usearch
 # iii.gene_info.txt.gz – List of all genes with their centroid mapping. Could be comprehensive but may not be necessary (i.e. I could just list the centroids only). 
 
-
 python parse_usearch.py
+
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/parse_usearch
+
+
+
+#######################################################
+# Update the MIDAS database with the new species data #
+#######################################################
+
+mkdir /home/ngarud/snyder_project/software/midas_db_v1.2/pan_genomes/new_species
+cp /srv/gsfs0/projects/snyder/ngarud/unique_prodigal_genes/files_for_midas/pan_genomes/* /home/ngarud/snyder_project/software/midas_db_v1.2/pan_genomes/new_species/
+
+
+##############################################
+# Run midas with the --extra_species flag    #
+# Match the species at all time points       #
+# also have the species from the new species #
+##############################################
+
+# make a list of species to run MIDAS on 
+python time_controlled_species_list_for_midas.py
+
+# copy over the species files (MIDAS_output_with_barcode_old, used to be named MIDAS_output)
+while read timept; do
+    echo $timept
+      mkdir /srv/gsfs0/projects/snyder/ngarud/MIDAS_output/${timept}
+      cp -R /srv/gsfs0/projects/snyder/ngarud/MIDAS_output_with_barcode_old/${timept}/species /srv/gsfs0/projects/snyder/ngarud/MIDAS_output/${timept}/
+done < ~/highres_microbiome_timecourse_scripts/timepts.txt
+
+# set up the snp run with the --extra species flag
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/MIDAS_snps_extra_species
+
+# genes
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/MIDAS_genes_extra_species
+
+# rerun for 4 time pts
+6041
+4023
+4021A
+4025.4
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/MIDAS_genes_extra_species_4timepts
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/MIDAS_genes_extra_species_4timepts_2
+
+# rerun for 4021A
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/MIDAS_genes_extra_species_4timepts_2
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/MIDAS_genes_extra_species_4021A
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/MIDAS_genes_extra_species_4021A_duplicate
+
+############################
+# Run the barcode module
+###########################
+
+qsub /home/ngarud/highres_microbiome_timecourse_scripts/qsub_scripts/MIDAS_barcode_module
+qsub /home/ngarud/highres_microbiome_timecourse_scripts/qsub_scripts/MIDAS_barcode_module_test_1022
+
+
+# Merge
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/MIDAS_cnvs_merge
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/MIDAS_species_merge
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/MIDAS_snps_merge
+
+
+#bzip
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/bzip_snps
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/bzip_genes
+qsub ~/highres_microbiome_timecourse_scripts/qsub_scripts/bzip_species
+
+
+# copy the barcodes to another fodler for transfer
+
+while read timept; do
+    echo $timept
+    cp -R /srv/gsfs0/projects/snyder/ngarud/MIDAS_output/${timept}/barcodes /srv/gsfs0/projects/snyder/ngarud/MIDAS_output/barcodes/${timept}
+done < ~/highres_microbiome_timecourse_scripts/timepts.txt
+
+
+while read timept; do
+    echo $timept
+    rm -R ${timept}/barcodes
+done < ~/highres_microbiome_timecourse_scripts/timepts.txt
 
