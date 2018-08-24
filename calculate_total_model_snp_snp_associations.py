@@ -96,12 +96,7 @@ desired_samples = parse_timecourse_data.morteza_samples
 #desired_samples = [parse_timecourse_data.highcoverage_antibiotic, parse_timecourse_data.highcoverage_end]
 #desired_samples = [parse_timecourse_data.highcoverage_start_2, parse_timecourse_data.highcoverage_antibiotic, parse_timecourse_data.highcoverage_postantibiotic, parse_timecourse_data.highcoverage_end]
 
-def calculate_M_from_D(D):
-    
-    if D<10:
-        return D
-    else:
-        return 10
+from barcode_utils import calculate_M_from_D
 
 
 gamete_idx_map = {('R','R'): 0, ('R','A'):1, ('A','R'):2, ('A','A'):3  }

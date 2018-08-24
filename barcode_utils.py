@@ -267,3 +267,16 @@ def calculate_linked_set(num_shared_barcodes, min_shared_barcodes=1):
                 linked_set.add(other_allele)
                 
     return linked_set
+    
+#####
+#
+# Function used to calculate mean number of fragments from barcode distribution
+#
+#####    
+def calculate_M_from_D(D):
+    
+    if D<10:
+        return D
+    else:
+        return 10
+
