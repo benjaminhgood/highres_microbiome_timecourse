@@ -22,6 +22,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import timecourse_utils
 import parse_patric
+import core_gene_utils
+import stats_utils
 
 ################################################################################
 #
@@ -51,11 +53,12 @@ theory_ts = theory_ts[theory_ts>0]
 species_coverage_matrix, samples, species = parse_midas_data.parse_global_marker_gene_coverages()
 species_idx_map = {species[i]: i for i in xrange(0,len(species))}
 sample_time_map = parse_timecourse_data.parse_sample_time_map()
-
-
+species_times, species_time_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, samples)
 
 species_coverage_matrix = species_coverage_matrix[:,species_time_idxs]
 species_freq_matrix = species_coverage_matrix*1.0/(species_coverage_matrix.sum(axis=0))
+
+desired_samples = numpy.array(samples)[species_time_idxs]
 
     
 
@@ -123,18 +126,27 @@ for species_idx in xrange(0,len(species_names)):
     
     if species_name!=old_species_name:
         # New species!
-        antibiotic_resistance_genes = parse_patric.load_antibiotic_resistance_genes(species_name)
-        virulence_factors = parse_patric.load_virulence_factors(species_name)
-        core_genes = parse_timecourse_data.load_core_timecourse_genes(species_name, min_copynum=0.3, min_prevalence=0.9, min_marker_coverage=min_coverage)
+        #antibiotic_resistance_genes = parse_patric.load_antibiotic_resistance_genes(species_name)
+        #virulence_factors = parse_patric.load_virulence_factors(species_name)
+        #core_genes = parse_timecourse_data.load_core_timecourse_genes(species_name, min_copynum=0.3, min_prevalence=0.9, min_marker_coverage=min_coverage)
     
+        sys.stderr.write("Loading whitelisted genes...\n")
+        non_shared_genes = core_gene_utils.parse_non_shared_reference_genes(species_name)
+        shared_pangenome_genes = core_gene_utils.parse_shared_genes(species_name)
+        sys.stderr.write("Done! %d shared genes and %d non-shared genes\n" % (len(shared_pangenome_genes), len(non_shared_genes)))
+    
+        sample_coverage_map = parse_midas_data.parse_sample_coverage_map(species_name)
+        
         # Load gene coverage information for species_name
         sys.stderr.write("Loading pangenome data for %s...\n" % species_name)
-        gene_samples, gene_names, gene_presence_matrix, gene_depth_matrix, marker_coverages, gene_reads_matrix = parse_midas_data.parse_pangenome_data(species_name,allowed_samples=desired_samples)
+        gene_samples, gene_names, gene_presence_matrix, gene_depth_matrix, marker_coverages, gene_reads_matrix = parse_midas_data.parse_pangenome_data(species_name,allowed_samples=desired_samples, disallowed_genes=shared_pangenome_genes)
         sys.stderr.write("Done!\n")
         marker_coverage_times, marker_coverage_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, gene_samples)
 
         marker_coverages = marker_coverages[marker_coverage_idxs]
     
+        full_species_coverages = species_coverage_matrix[species.index(species_name),:]
+        
         times = []
         alt_matrix = []
         depth_matrix = []
@@ -144,15 +156,15 @@ for species_idx in xrange(0,len(species_names)):
         while final_line_number >= 0:
     
             sys.stderr.write("Loading chunk starting @ %d...\n" % final_line_number)
-            samples, allele_counts_map, passed_sites_map, final_line_number = parse_midas_data.parse_snps(species_name, debug=debug, allowed_variant_types=set(['1D','2D','3D','4D']),chunk_size=chunk_size,allowed_samples=desired_samples, initial_line_number=final_line_number)
+            samples, allele_counts_map, passed_sites_map, final_line_number = parse_midas_data.parse_snps(species_name, debug=debug, allowed_variant_types=set(['1D','2D','3D','4D']),chunk_size=chunk_size,allowed_samples=desired_samples, initial_line_number=final_line_number, allowed_genes=non_shared_genes)
             sys.stderr.write("Done! Loaded %d genes\n" % len(allele_counts_map.keys()))
     
             if len(samples)<5:
                 continue
      
-    
-            sample_ts, sample_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, samples)
-
+            sample_ts, sample_idxs =  parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, samples)
+            
+        
             # Calculate fixation matrix
             sys.stderr.write("Calculating allele freqs...\n")
             chunk_alts, chunk_depths, chunk_snp_infos = timecourse_utils.calculate_read_count_matrix(allele_counts_map, passed_sites_map, allowed_variant_types=set(['1D','2D','3D','4D']))    
@@ -181,10 +193,19 @@ for species_idx in xrange(0,len(species_names)):
                     snp_infos.append(chunk_snp_infos[idx])
                     
         sys.stderr.write("Done!\n")
-        
+
         if len(samples)<5:
             continue
      
+        ordered_samples = samples[sample_idxs]
+        snp_coverages = numpy.array([sample_coverage_map[sample] for sample in ordered_samples])
+     
+        species_coverages = []
+        for t in times:
+            good_idxs = numpy.isclose(species_times,t)
+            if good_idxs.any():
+                species_coverages.append( full_species_coverages[good_idxs][0])
+        species_coverages = numpy.array(species_coverages)
         
         if len(alt_matrix)>0:     
             alt_matrix = numpy.vstack(alt_matrix)
@@ -284,7 +305,8 @@ for species_idx in xrange(0,len(species_names)):
         masked_times = times[depths>=min_coverage]
         masked_freqs = freqs[depths>=min_coverage]
         masked_depths = depths[depths>=min_coverage]
-        
+        masked_species_depths = species_coverages[depths>=min_coverage]
+        masked_snp_depths = snp_coverages[depths>=min_coverage]
         allele='A'
         
         if masked_freqs[0]>0.5:
@@ -293,14 +315,13 @@ for species_idx in xrange(0,len(species_names)):
             
         if (masked_freqs>0.1).sum() < 2:
             continue
-         
-        interpolation_function = timecourse_utils.create_interpolation_function(masked_times, masked_freqs)
-        
         
         if color_condition(species_idx, chromosome, location, gene_name, variant_type, masked_times, masked_freqs, masked_depths):
         
-            
-            output_str = "\t".join([species_name, snp_infos[mutation_idx][0], str(snp_infos[mutation_idx][1]), allele, str(species_idx)])
+            #print (masked_depths/masked_species_depths)
+            #print (masked_depths/masked_snp_depths)
+            allele_str = "|".join([snp_infos[mutation_idx][0], str(snp_infos[mutation_idx][1]), allele])
+            output_str = "\t".join([species_name, allele_str, str(species_idx)])
         
             output_key = (species_idx, chromosome, location)
             output_items[output_key] = output_str

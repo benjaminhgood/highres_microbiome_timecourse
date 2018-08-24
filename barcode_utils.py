@@ -25,8 +25,60 @@ def minimum_gamete_fraction(gamete_vector):
     return gamete_vector.min()*1.0/n
 
 
-def barcodes_exist(species_name, sample_name):
-    barcode_filename = "%s%s/output/%s.barcodes.gz" % (config.barcode_directory, sample_name, species_name)
+def parse_barcode_depth_map(sample_name, corrected=True, min_depth=0):
+
+    if corrected:
+        barcode_filename = "%s%s/output/all_corrected_barcodes.gz" % (config.barcode_directory, sample_name)
+    
+    else:
+        barcode_filename = "%s%s/output/all_barcodes.gz" % (config.barcode_directory, sample_name)
+        
+    barcode_depth_map = {}
+    
+    if os.path.isfile(barcode_filename):
+        barcode_file = gzip.GzipFile(barcode_filename,"r")
+        barcode_file.readline() # header
+    
+        for line in barcode_file:
+            items = line.split()
+            barcode_id = long(items[0])
+            barcode_weight = long(items[2])
+            
+            if barcode_weight >= min_depth:
+                barcode_depth_map[barcode_id] = barcode_weight
+            
+        barcode_file.close()
+    
+    return barcode_depth_map
+        
+def parse_barcode_error_correction_map(sample_name):
+
+    barcode_filename = "%s%s/output/barcode_map.gz" % (config.barcode_directory, sample_name)
+    barcode_error_map = {}
+        
+    if not os.path.isfile(barcode_filename):
+        return barcode_error_map
+    
+    barcode_file = gzip.GzipFile(barcode_filename,"r")
+    barcode_file.readline() # header
+    
+    for line in barcode_file:
+        items = line.split()
+        original_barcode = long(items[0])
+        corrected_barcode = long(items[1])
+        
+        barcode_error_map[original_barcode] = corrected_barcode
+        
+    barcode_file.close()
+    return barcode_error_map
+    
+    
+def barcodes_exist(species_name, sample_name, corrected=True):
+    if corrected:
+        barcode_filename = "%s%s/output/%s.corrected_barcodes.gz" % (config.barcode_directory, sample_name, species_name)
+    
+    else:
+        barcode_filename = "%s%s/output/%s.barcodes.gz" % (config.barcode_directory, sample_name, species_name)
         
     if os.path.isfile(barcode_filename):
         return True
@@ -34,9 +86,18 @@ def barcodes_exist(species_name, sample_name):
         return False
         
 
-def parse_allele_barcode_tuples(species_name, sample_name):
+def parse_allele_barcode_tuples(species_name, sample_name, corrected=True, bootstrapped=False):
     
-    barcode_filename = "%s%s/output/%s.barcodes.gz" % (config.barcode_directory, sample_name, species_name)
+    barcode_filename = "%s%s/output/%s" % (config.barcode_directory, sample_name, species_name)
+    if corrected:
+        barcode_filename += ".corrected_barcodes"
+    else:
+        barcode_filename += ".barcodes"
+        
+    if bootstrapped:
+        barcode_filename += ".bootstrapped"
+        
+    barcode_filename+=".gz"
     
     barcode_file = gzip.GzipFile(barcode_filename,"r")
     barcode_file.readline()
@@ -62,9 +123,13 @@ def parse_allele_barcode_tuples(species_name, sample_name):
     return allele_barcode_map
 
     
-def parse_allele_barcodes(species_name, sample_name):
+def parse_allele_barcodes(species_name, sample_name, corrected=True):
     
-    barcode_filename = "%s%s/output/%s.barcodes.gz" % (config.barcode_directory, sample_name, species_name)
+    if corrected:
+        barcode_filename = "%s%s/output/%s.corrected_barcodes.gz" % (config.barcode_directory, sample_name, species_name)
+    
+    else:
+        barcode_filename = "%s%s/output/%s.barcodes.gz" % (config.barcode_directory, sample_name, species_name)
     
     barcode_file = gzip.GzipFile(barcode_filename,"r")
     barcode_file.readline()

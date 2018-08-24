@@ -8,6 +8,7 @@ from math import floor, ceil
 import gene_diversity_utils
 
 import config
+import sample_utils
 
 ###############################################################################
 #
@@ -24,371 +25,7 @@ midas_directory = config.midas_directory
 # We use this one to debug because it was the first one we looked at
 debug_species_name = config.debug_species_name
 
-###############################################################################
-#
-# Methods for parsing sample metadata
-#
-###############################################################################
-
-def parse_merged_sample_names(items):
-    samples = []
-    for item in items:
-        sample = item.strip()
-        #if sample.endswith('c'):
-        #    sample = sample[:-1]
-        samples.append(sample)
-        
-    samples = numpy.array(samples)
-    return samples
-
-###############################################################################
-#
-# Loads metadata for HMP samples 
-# Returns map from subject -> map of samples -> set of accession IDs
-#
-###############################################################################
-def parse_subject_sample_map(): 
-
-    subject_sample_map = {}
-    
-    # First load HMP metadata
-    file = open(scripts_directory+"HMP_ids.txt","r")
-    file.readline() # header
-    for line in file:
-        items = line.split("\t")
-        subject_id = items[0].strip()
-        sample_id = items[1].strip()
-        accession_id = items[2].strip()
-        country = items[3].strip()
-        continent = items[4].strip()
-        
-        if subject_id not in subject_sample_map:
-            subject_sample_map[subject_id] = {}
-            
-        if sample_id not in subject_sample_map[subject_id]:
-            subject_sample_map[subject_id][sample_id] = set()
-            
-        subject_sample_map[subject_id][sample_id].add(accession_id)
-    file.close()
-    
-    # Then load Kuleshov data 
-    file = open(scripts_directory+"kuleshov_ids.txt","r")
-    file.readline() # header
-    for line in file:
-        items = line.split("\t")
-        subject_id = items[0].strip()
-        sample_id = items[1].strip()
-        accession_id = items[2].strip()
-        country = items[3].strip()
-        continent = items[4].strip()
-        
-        if subject_id not in subject_sample_map:
-            subject_sample_map[subject_id] = {}
-            
-        if sample_id not in subject_sample_map[subject_id]:
-            subject_sample_map[subject_id][sample_id] = set()
-            
-        subject_sample_map[subject_id][sample_id].add(accession_id)
-    file.close()
-    
-    # Then load Qin data
-    file = open(scripts_directory+"qin_ids.txt","r")
-    file.readline() # header
-    for line in file:
-        items = line.split("\t")
-        subject_id = items[0].strip()
-        sample_id = items[1].strip()
-        accession_id = items[2].strip()
-        sample_id = accession_id # Nandita used accession id as MIDAS header for this dataset
-        country = items[3].strip()
-        continent = items[4].strip()
-        
-        if subject_id not in subject_sample_map:
-            subject_sample_map[subject_id] = {}
-            
-        if sample_id not in subject_sample_map[subject_id]:
-            subject_sample_map[subject_id][sample_id] = set()
-            
-        subject_sample_map[subject_id][sample_id].add(accession_id)
-    file.close()
-      
-    
-    # Repeat for other data
-    # Nothing else so far
-     
-    return subject_sample_map 
-
-#####
-#
-# Loads country metadata for samples
-#
-#####
-def parse_sample_country_map(): 
-
-    sample_country_map = {}
-    
-    # First load HMP metadata
-    file = open(scripts_directory+"HMP_ids.txt","r")
-    file.readline() # header
-    for line in file:
-        items = line.split("\t")
-        subject_id = items[0].strip()
-        sample_id = items[1].strip()
-        accession_id = items[2].strip()
-        country = items[3].strip()
-        continent = items[4].strip()
-            
-        if sample_id not in sample_country_map:
-            sample_country_map[sample_id] = country
-            
-    file.close()
-    
-    # Then load Kuleshov data 
-    file = open(scripts_directory+"kuleshov_ids.txt","r")
-    file.readline() # header
-    for line in file:
-        items = line.split("\t")
-        subject_id = items[0].strip()
-        sample_id = items[1].strip()
-        accession_id = items[2].strip()
-        country = items[3].strip()
-        continent = items[4].strip()
-        
-        if sample_id not in sample_country_map:
-            sample_country_map[sample_id] = country
-    
-    file.close()
-    
-    # Then load Qin data
-    file = open(scripts_directory+"qin_ids.txt","r")
-    file.readline() # header
-    for line in file:
-        items = line.split("\t")
-        subject_id = items[0].strip()
-        sample_id = items[1].strip()
-        accession_id = items[2].strip()
-        sample_id = accession_id # Nandita used accession id as MIDAS header for this dataset
-        country = items[3].strip()
-        continent = items[4].strip()
-        
-        if sample_id not in sample_country_map:
-            sample_country_map[sample_id] = country
-    
-    file.close()
-      
-    
-    # Repeat for other data
-    # Nothing else so far
-     
-    return sample_country_map
-
-###############################################################################
-#
-# Creates a map of indexes from one list of samples (sample_list_from)
-# to another list of samples (sample_list_to). The from list must be a 
-# strict subset of the to list. 
-#
-###############################################################################
-def calculate_sample_idx_map(sample_list_from, sample_list_to):
-    
-    sample_list_to = list(sample_list_to)
-    sample_map = {}
-    for i in xrange(0,len(sample_list_from)):
-        sample_map[i] = sample_list_to.index(sample_list_from[i])
-    
-    return sample_map
-
-def apply_sample_index_map_to_indices(sample_idx_map, idxs):
-    new_idxs = (numpy.array([sample_idx_map[i] for i in idxs[0]]), numpy.array([sample_idx_map[i] for i in idxs[1]]))
-    return new_idxs
-
-def sample_name_lookup(sample_name, samples):
-    
-    for sample in samples:
-    
-        if sample.startswith(sample_name):
-            return sample
-            
-    return ""
-
-###############################################################################
-#
-# Prunes sample list to remove multiple timepoints from same subject
-# Returns len(sampe_list) boolean array with element=False if sample was pruned  
-#
-###############################################################################
-def calculate_unique_samples(subject_sample_map, sample_list=[]):
-
-    if len(sample_list)==0:
-        sample_list = list(sorted(flatten_samples(subject_sample_map).keys()))
-    
-    # invert subject sample map
-    sample_subject_map = {}
-    for subject in subject_sample_map.keys():
-        for sample in subject_sample_map[subject].keys():
-            sample_subject_map[sample] = subject
-    
-    subject_idx_map = {}
-        
-    for i in xrange(0,len(sample_list)):
-        sample = sample_list[i]
-        if sample.endswith('c'):
-            sample = sample[:-1]
-        subject = sample_subject_map[sample]
-        if not subject in subject_idx_map:
-            subject_idx_map[subject] = i
-            
-    unique_idxs = numpy.zeros(len(sample_list),dtype=numpy.bool_)
-    for i in subject_idx_map.values():
-        unique_idxs[i]=True
-    
-    return unique_idxs
-    
-    
-###############################################################################
-#
-# Prunes sample list to only include samples from allowed countries
-# Returns len(sampe_list) boolean array with element=False if sample was pruned  
-#
-###############################################################################
-def calculate_country_samples(sample_country_map, sample_list=[], allowed_countries=set([])):
-
-    if len(sample_list)==0:
-        sample_list = list(sorted(sample_country_map.keys()))
-        
-    allowed_idxs = []
-    for sample in sample_list:
-        
-        if sample.endswith('c'):
-            desired_sample = sample[:-1]
-        else:
-            desired_sample = sample
-            
-        if (len(allowed_countries))==0 or (sample_country_map[desired_sample] in allowed_countries):
-            allowed_idxs.append(True)
-        else:
-            allowed_idxs.append(False)
-            
-    allowed_idxs = numpy.array(allowed_idxs)
-    return allowed_idxs
-    
-
-###############################################################################
-#
-# For a given list of samples, calculates which belong to different subjects
-# which belong to different timepoints in same subject, and which are the same
-# timepoint.
-#
-# Returns same_sample_idxs, same_subject_idxs, diff_subject_idxs, 
-# each of which is a tuple with idx1 and idx2. All pairs are included 
-# only once. 
-#
-###############################################################################
-def calculate_subject_pairs(subject_sample_map, sample_list=[]):
-
-    if len(sample_list)==0:
-        sample_list = list(sorted(flatten_samples(subject_sample_map).keys()))
-    
-    new_sample_list = []
-    for sample in sample_list:
-        if sample.endswith('c'):
-            new_sample_list.append(sample[:-1])
-        else: 
-            new_sample_list.append(sample)
-    
-    sample_list = new_sample_list
-    
-    # invert subject sample map
-    sample_subject_map = {}
-    for subject in subject_sample_map.keys():
-        for sample in subject_sample_map[subject].keys():
-            sample_subject_map[sample] = subject
-    
-    same_sample_idx_lower = []
-    same_sample_idx_upper = []
-    same_subject_idx_lower = []
-    same_subject_idx_upper = []
-    diff_subject_idx_lower = []
-    diff_subject_idx_upper = []
-        
-    for i in xrange(0,len(sample_list)):
-        same_sample_idx_lower.append(i)
-        same_sample_idx_upper.append(i)
-        for j in xrange(0,i):
-            if sample_subject_map[sample_list[i]]==sample_subject_map[sample_list[j]]:
-                same_subject_idx_lower.append(i)
-                same_subject_idx_upper.append(j)
-            else: 
-                diff_subject_idx_lower.append(i)
-                diff_subject_idx_upper.append(j)
-    
-    same_sample_idxs = (numpy.array(same_sample_idx_lower,dtype=numpy.int32), numpy.array(same_sample_idx_upper,dtype=numpy.int32))
-    
-    same_subject_idxs = (numpy.array(same_subject_idx_lower,dtype=numpy.int32), numpy.array(same_subject_idx_upper,dtype=numpy.int32))
-    
-    diff_subject_idxs = (numpy.array(diff_subject_idx_lower,dtype=numpy.int32), numpy.array(diff_subject_idx_upper,dtype=numpy.int32))
-    
-    return same_sample_idxs, same_subject_idxs, diff_subject_idxs
-
-
-###############################################################################
-#
-# Returns a flat map of all the replicate sets for
-# the samples in subject_sample_map, indexed by sample key        
-#
-###############################################################################
-def flatten_samples(subject_sample_map):
-    
-    grouping_replicate_map = {}
-    for subject in sorted(subject_sample_map.keys()):
-        for sample in sorted(subject_sample_map[subject].keys()):
-            grouping_replicate_map[sample] = subject_sample_map[subject][sample]
-    
-    return grouping_replicate_map
-
-
-###############################################################################
-#
-# Returns a flat map of the merged replicate sets for each subject, 
-# indexed by subject key 
-#   
-###############################################################################    
-def flatten_subjects(subject_sample_map):
-    
-    grouping_replicate_map = {}
-    for subject in sorted(subject_sample_map.keys()):
-        merged_replicates = set()
-        for sample in subject_sample_map[subject].keys():
-            merged_replicates.update(subject_sample_map[subject][sample])
-        grouping_replicate_map[subject] = merged_replicates
-        
-    return grouping_replicate_map
-
-
-###############################################################################
-#
-# groupings = ordered list of nonoverlapping sets of sample names
-# samples = ordered list of samples
-#
-# returns: list whose i-th element contains a numpy array of idxs
-#          of the items in samples that are present in the ith grouping
-#   
-###############################################################################       
-def calculate_grouping_idxs(groupings, samples):
-    
-    grouping_idxs = []
-    for i in xrange(0,len(groupings)):
-    
-        idxs = []
-        for j in xrange(0,len(samples)):
-            if samples[j] in groupings[i]:
-                idxs.append(j)
-        idxs = numpy.array(idxs,dtype=numpy.int32)
-        #print idxs
-        grouping_idxs.append(idxs)
-    
-    return grouping_idxs
-
+from sample_utils import *
 
 ###############################################################################
 #
@@ -486,6 +123,25 @@ def parse_global_marker_gene_coverages():
     species_coverage_matrix = numpy.array(species_coverage_matrix)
     return species_coverage_matrix, samples, species
 
+def parse_species_marker_gene_coverages(desired_species_name):
+    
+    species_coverage_matrix, samples, species = parse_species_marker_gene_coverages()
+    
+    for species_idx in xrange(0,len(species)):
+        species_name = species[species_idx]
+        if species_name==desired_species_name:
+            return species_coverage_matrix[species_idx,:], samples
+
+    return None
+    
+def parse_sample_coverage_map(desired_species_name):
+    import stats_utils
+    
+    # Load genomic coverage distributions
+    sample_coverage_histograms, samples = parse_coverage_distribution(desired_species_name)
+    median_coverages = numpy.array([stats_utils.calculate_nonzero_median_from_histogram(sample_coverage_histogram) for sample_coverage_histogram in sample_coverage_histograms])
+    sample_coverage_map = {samples[i]: median_coverages[i] for i in xrange(0,len(samples))}
+    return sample_coverage_map
 
 def parse_gene_coverages(desired_species_name):
 
@@ -534,7 +190,7 @@ def parse_marker_gene_coverage_distribution(desired_species_name):
         
     return marker_gene_coverages
 
-def parse_coverage_distribution(desired_species_name,prevalence_filter=True):
+def parse_coverage_distribution(desired_species_name,prevalence_filter=True,remove_c=True):
 
     if prevalence_filter:
         full_str = ""
@@ -555,7 +211,9 @@ def parse_coverage_distribution(desired_species_name,prevalence_filter=True):
             sample_coverage_histogram[float(subitems[0])] = float(subitems[1])
         sample_coverage_histograms.append(sample_coverage_histogram)
         samples.append(items[0])
-        
+    
+    if remove_c == True:
+        samples = parse_merged_sample_names(samples)    
     return sample_coverage_histograms, samples
     
 ## 
@@ -568,7 +226,7 @@ def parse_marker_gene_coverages(desired_species_name):
     marker_file = bz2.BZ2File("%ssnps/%s/marker_coverage.txt.bz2" % (data_directory, desired_species_name))
     
     line = marker_file.readline() # header
-    samples = line.split()[1:]
+    samples = parse_merged_sample_names(line.split()[1:])
     species = []
     species_coverage_matrix = []
     
@@ -611,7 +269,7 @@ def calculate_relative_depth_threshold_map(sample_coverage_histograms, samples, 
     
         # Passed median coverage requirement
         # Now check whether a significant number of sites fall between lower and upper factor. 
-        lower_depth_threshold = floor(nonzero_median_coverage*lower_factor)-0.5
+        lower_depth_threshold = floor(nonzero_median_coverage*lower_factor)-0.5 # why is 0.5 being added/subtracted? NRG
         upper_depth_threshold = ceil(nonzero_median_coverage*upper_factor)+0.5
     
         depths, depth_CDF = stats_utils.calculate_CDF_from_histogram(sample_coverage_histograms[i])
@@ -622,7 +280,7 @@ def calculate_relative_depth_threshold_map(sample_coverage_histograms, samples, 
         
         fraction_in_good_range = depth_CDF[(depths>lower_depth_threshold)*(depths<upper_depth_threshold)].sum()
     
-        if fraction_in_good_range < 0.6:
+        if fraction_in_good_range < 0.6: #where does 0.6 come from? NRG
             is_bad_coverage_distribution=True
             
         if is_bad_coverage_distribution:
@@ -662,16 +320,20 @@ def calculate_absolute_depth_threshold_map(species_coverage_vector, samples, avg
 # In the process, filters sites that fail to meet the depth requirements
 #
 ###############################################################################
-def pipe_snps(species_name, min_nonzero_median_coverage=5, lower_factor=0.3, upper_factor=3, min_samples=4, debug=False):
+def pipe_snps(species_name, min_nonzero_median_coverage=config.pipe_snps_min_nonzero_median_coverage, lower_factor=config.pipe_snps_lower_depth_factor, upper_factor=config.pipe_snps_upper_depth_factor, min_samples=config.pipe_snps_min_samples, debug=False):
 
 
 # lower_factor = 0.3 is the default to be consistent with MIDAS gene presence criterion
 # upper factor = 3 is the default for (logarithmic) symmetry 
 # min_samples=4 is the default because then the site is guaranteed to be present in 
 # at least 2 independent people. 
+# NRG: Why is a site guaranteed to be in at least 2 independent people?
+# BG: In our cohort, the maximum number of samples per person is 3. 
+#     If there are 4 samples, then they must be spread across at least 2 people. 
     
     # Load genomic coverage distributions
-    sample_coverage_histograms, sample_list = parse_coverage_distribution(species_name)
+    sample_coverage_histograms, sample_list = parse_coverage_distribution(species_name, remove_c=False)
+    # depth threshold map returns the lower and upper depth values that are 0.3*median and 3*median depth in the data. 
     depth_threshold_map = calculate_relative_depth_threshold_map(sample_coverage_histograms, sample_list, min_nonzero_median_coverage, lower_factor, upper_factor)
     
    
@@ -693,6 +355,11 @@ def pipe_snps(species_name, min_nonzero_median_coverage=5, lower_factor=0.3, upp
     depth_items = depth_line.split()
     samples = numpy.array(depth_items[1:])
     
+    # BHG (06/24/17) removed this so that all "raw" data have "c"s. 
+    # All functions that write something keep them. 
+    # All loading functions strip them. 
+    #samples= parse_merged_sample_names(samples) # NRG (06/06/17): I added this so that the keys in dictionary are compatible. 
+
     # samples
     prevalence_threshold = min([min_samples*1.0/len(samples), 0.5])
     
@@ -707,7 +374,7 @@ def pipe_snps(species_name, min_nonzero_median_coverage=5, lower_factor=0.3, upp
     upper_depth_threshold_vector = numpy.array(upper_depth_threshold_vector)
     
     # Figure out which samples passed our avg_depth_threshold
-    passed_samples = (lower_depth_threshold_vector<1e09)
+    passed_samples = (lower_depth_threshold_vector<1e09) #1e09 comes from the calculate_relative_depth_threshold_map definition above, which is a code for a bad sample. A bad sample has median depth less than 5 or greater than 0.6 fraction of the genome is outside the acceptable range of good depths. 
     total_passed_samples = passed_samples.sum()
     
     # Let's focus on those from now on
@@ -722,7 +389,7 @@ def pipe_snps(species_name, min_nonzero_median_coverage=5, lower_factor=0.3, upp
     print print_str
     
     # Only going to look at 1D, 2D, 3D, and 4D sites
-    # (we will restrict to 1D and 4D downstream
+    # (we will restrict to 1D and 4D downstream)
     allowed_variant_types = set(['1D','2D','3D','4D'])
     
     allele_counts_syn = [] # alt and reference allele counts at 4D synonymous sites with snps
@@ -759,10 +426,13 @@ def pipe_snps(species_name, min_nonzero_median_coverage=5, lower_factor=0.3, upp
         # continue parsing site info
         gene_name = info_items[6]
         site_id_items = info_items[0].split("|")
-        contig = site_id_items[0]
-        location = site_id_items[1]
-        new_site_id_str = "|".join([contig, location, gene_name, variant_type])
-        
+        # NRG: added this if condition to deal with extra 'accn' in db swap. 
+        if site_id_items[0]=='accn':
+            contig = site_id_items[1]
+            location = site_id_items[2]
+        else:
+            contig = site_id_items[0] 
+            location = site_id_items[1]
         
     
         # now parse allele count info
@@ -796,11 +466,13 @@ def pipe_snps(species_name, min_nonzero_median_coverage=5, lower_factor=0.3, upp
         total_refs = depths.sum()
         total_depths = total_alts+total_refs
         
+        # BG: 05/18: moving the polarization part to another part of the pipeline
+        # so that we can use HMP polarization with other datasets. 
+        # at the moment, still saving polarization state.
         
-        # polarize SNP based on consensus in entire dataset
-        #if total_alts>total_refs:
-        #    alts,refs = refs,alts
-        #    total_alts, total_refs = total_refs, total_alts
+        polarization = "R"    
+        new_site_id_str = "|".join([contig, location, gene_name, variant_type, polarization])
+        
         
         # print string
         read_strs = ["%g,%g" % (A,A+R) for A,R in zip(alts, refs)]
@@ -829,8 +501,12 @@ def pipe_snps(species_name, min_nonzero_median_coverage=5, lower_factor=0.3, upp
 # returns (lots of things, see below)
 #
 ###############################################################################
-def parse_snps(species_name, debug=False, allowed_samples=[], allowed_genes=[], allowed_variant_types=['1D','2D','3D','4D'], initial_line_number=0, chunk_size=1000000000, filter_alts=True):
+def parse_snps(species_name, debug=False, allowed_samples=[], allowed_genes=[], allowed_variant_types=['1D','2D','3D','4D'], initial_line_number=0, chunk_size=1000000000):
     
+    import calculate_snp_prevalences
+    # Load population freqs (for polarization purposes)    
+    population_freqs = calculate_snp_prevalences.parse_population_freqs(species_name)
+   
     # Open post-processed MIDAS output
     snp_file =  bz2.BZ2File("%ssnps/%s/annotated_snps.txt.bz2" % (data_directory, species_name),"r")
     
@@ -839,15 +515,31 @@ def parse_snps(species_name, debug=False, allowed_samples=[], allowed_genes=[], 
     samples = parse_merged_sample_names(items)
     
     if len(allowed_samples)==0:
-        allowed_samples = set(samples)
+        allowed_sample_set = set(samples)
     else:
-        allowed_samples = set(allowed_samples)
-    
+        allowed_sample_set = (set(allowed_samples) & set(samples))
+        
     allowed_genes = set(allowed_genes)
     allowed_variant_types = set(allowed_variant_types)
+    
+    # This is a hack because there were some mistaken repeats in an old data file
+    # should be able to remove later
+    seen_samples = set()
+    desired_sample_idxs = []
+    for sample in allowed_samples:
+        if (sample in allowed_sample_set) and (sample not in seen_samples):
+            desired_sample_idxs.append( numpy.nonzero(samples==sample)[0][0] )
+        else:
+            pass
         
-    desired_sample_idxs = numpy.array([sample in allowed_samples for sample in samples])
+        seen_samples.add(sample)
+        
+    desired_sample_idxs = numpy.array(desired_sample_idxs)    
+        
     desired_samples = samples[desired_sample_idxs]
+    
+    #print len(samples), len(desired_sample_idxs), len(allowed_samples), len(desired_samples), len(allowed_sample_set)
+
     
     # map from gene_name -> var_type -> (list of locations, matrix of allele counts)
     allele_counts_map = {}
@@ -874,7 +566,14 @@ def parse_snps(species_name, debug=False, allowed_samples=[], allowed_genes=[], 
         location = long(info_items[1])
         gene_name = info_items[2]
         variant_type = info_items[3]
-        pvalue = float(info_items[4])
+        
+        if len(info_items) > 5: # for backwards compatability
+            polarization = info_items[4]
+            pvalue = float(info_items[5])
+        else: 
+            polarization="R" # not correct, but avoids a crash
+            pvalue = float(info_items[4])
+            
         
         if num_sites_processed >= chunk_size and gene_name!=previous_gene_name:
             # We are done for now!
@@ -889,22 +588,35 @@ def parse_snps(species_name, debug=False, allowed_samples=[], allowed_genes=[], 
             continue
         
         # Load alt and depth counts
+        # Load alt and depth counts
         alts = []
         depths = []
-        for item, include in zip(items[1:], desired_sample_idxs):
-            if include:
-                subitems = item.split(",")
-                alts.append(float(subitems[0]))
-                depths.append(float(subitems[1]))
+        
+        for idx in desired_sample_idxs:    
+            item = items[1+idx]
+            subitems = item.split(",")
+            alts.append(float(subitems[0]))
+            depths.append(float(subitems[1]))
         alts = numpy.array(alts)
         depths = numpy.array(depths)
         
+        
+        # polarize
+        if (chromosome, location) in population_freqs:
+            population_freq = population_freqs[(chromosome, location)]
+        else:
+            population_freq = 0
+        
+        # polarize SFS according to population freq
+        if population_freq>0.5:
+            alts = depths-alts
+            polarization = 'A'
+     
         passed_sites = (depths>0)*1.0
         if gene_name not in passed_sites_map:
             passed_sites_map[gene_name] = {v: {'location': (chromosome,location), 'sites': numpy.zeros((len(desired_samples), len(desired_samples)))} for v in allowed_variant_types}
             
             allele_counts_map[gene_name] = {v: {'locations':[], 'alleles':[]} for v in allowed_variant_types}
-        
         
         passed_sites_map[gene_name][variant_type]['sites'] += passed_sites[:,None]*passed_sites[None,:]
         
@@ -914,36 +626,14 @@ def parse_snps(species_name, debug=False, allowed_samples=[], allowed_genes=[], 
         depths = depths*passed_sites
         
         # calculate whether SNP has passed
-        alt_lower_threshold = numpy.ceil(depths*0.1)+0.5
-        alt_upper_threshold = numpy.ceil(depths*0.90)-0.5
-        
-        polymorphic_idxs = (alts>alt_lower_threshold)*(alts<alt_upper_threshold)
-        
-        if (polymorphic_idxs.sum()>0) and (pvalue<0.05):
-            snp_passed=True
-        else:
-            snp_passed=False  
-        
-        #alt_threshold = numpy.ceil(depths*0.05)+0.5 #at least one read above 5%.
-        #alts = alts*((alts>alt_lower_threshold))
-        #snp_passed = (alts.sum()>0) and (pvalue<0.05)
+        alt_threshold = numpy.ceil(depths*config.parse_snps_min_freq)+0.5 #at least one read above 5%.
+        snp_passed = ((alts>alt_threshold).sum()>0) and (pvalue<0.05)
         
         # Criteria used in Schloissnig et al (Nature, 2013)
         #total_alts = alts.sum()
         #total_depths = depths.sum()
         #pooled_freq = total_alts/((total_depths+(total_depths==0))
         #snp_passed = (freq>0.01) and (total_alts>=4) and ((total_depths-total_alts)>=4)
-        
-        
-        # "pop gen" version
-        #alt_lower_threshold = numpy.ceil(depths*0.05)+0.5 #at least one read above 5%.
-        #alts = alts*((alts>alt_lower_threshold))
-        #alt_upper_threshold = alt_lower_threshold
-        #snp_passed = ((alts>alt_upper_threshold).sum()>0) and (pvalue<0.05)
-        
-        # consensus approximation
-        #alt_upper_threshold = depths*0.95
-        #snp_passed = ((alts>alt_upper_threshold).sum()>0)
         
         if snp_passed:
             allele_counts = numpy.transpose(numpy.array([alts,depths-alts]))
@@ -979,88 +669,83 @@ def parse_snps(species_name, debug=False, allowed_samples=[], allowed_genes=[], 
 # returns vector of samples, vector of pi_s (raw counts), vector of opportunities
 #
 ###############################################################################
-def parse_within_sample_pi(species_name, allowed_genes=set([]), allowed_variant_types=set(['4D']), debug=False):
+def parse_within_sample_pi_new(species_name, allowed_genes=set([]), allowed_variant_types=set(['4D']), debug=False):
     
-    # Open post-processed MIDAS output
-    snp_file =  bz2.BZ2File("%ssnps/%s/annotated_snps.txt.bz2" % (data_directory, species_name),"r")
+    samples, sfs_map = parse_within_sample_sfs(species_name, allowed_variant_types)
     
-    line = snp_file.readline() # header
-    items = line.split()[1:]
-    samples = parse_merged_sample_names(items)
-    
-    
-    
-    total_opportunities = numpy.zeros(len(samples))*1.0
-    total_pi = numpy.zeros(len(samples))*1.0
-    
-    num_sites_processed = 0
-    for line in snp_file:
+    total_pi = []
+    total_opportunities = []
+    for sample in samples: 
+        p,n = diversity_utils.calculate_pi_from_sfs_map(sfs_map[sample])
+        total_pi.append(p)
+        total_opportunities.append(n)
         
-        items = line.split()
-        # Load information about site
-        info_items = items[0].split("|")
-        chromosome = info_items[0]
-        location = long(info_items[1])
-        gene_name = info_items[2]
-        variant_type = info_items[3]
-        pvalue = float(info_items[4])
+    total_pi = numpy.array(total_pi)*1.0
+    total_opportunities = numpy.array(total_opportunities)*1.0
+    
+    return samples, total_pi, total_opportunities
+    
+
+
+###############################################################################
+#
+# Calculates within-sample sfs directly from annotated_snps.txt.bz2. 
+# Ugly hack (since it does not encourage code re-use and puts pop-gen logic
+# in the basic parsing scripts) but we need it so that we can call parse_snps 
+# on subsets of haploid samples later on to improve performance
+#
+# returns vector of samples, vector of sfs maps
+#
+# (
+#
+###############################################################################
+def parse_within_sample_sfs(species_name, allowed_variant_types=set(['1D','2D','3D','4D'])):
+    
+    # First write (filtered) genome-wide coverage distribution
+    sfs_file = bz2.BZ2File("%ssnps/%s/within_sample_sfs.txt.bz2" % (data_directory, species_name),"r")
+    sfs_file.readline() # header
+    
+    sfs_map = {}
+    samples = []
+    for line in sfs_file:
+        items = line.split("\t")
+        sample = parse_merged_sample_names([items[0].strip()])[0]
+        
+        variant_type = items[1].strip()
+        sfs_items = items[2:]
+        
         
         if variant_type not in allowed_variant_types:
             continue
         
-        if len(allowed_genes)>0 and (gene_name not in allowed_genes):
-            continue
+        if sample not in sfs_map:
+            sfs_map[sample] = {}
+            samples.append(sample)
+            
         
-        # Load alt and depth counts
-        alts = []
-        depths = []
-        for item in items[1:]:
-            subitems = item.split(",")
-            alts.append(float(subitems[0]))
-            depths.append(float(subitems[1]))
-        alts = numpy.array(alts)
-        depths = numpy.array(depths)
-        refs = depths-alts
-
-        passed_sites = (depths>0)*1.0
-        
-        # zero out non-passed sites
-        # (shouldn't be needed anymore)    
-        refs = refs*passed_sites
-        alts = alts*passed_sites
-        depths = depths*passed_sites
-        
-        alt_lower_threshold = numpy.ceil(depths*0.05)+0.5 #at least one read above 5%.
-        alts[alts<alt_lower_threshold] = 0
-        alt_upper_threshold = numpy.floor(depths*0.95)-0.5 #at least one read below 95%
-        alts[alts>alt_upper_threshold] = depths[alts>alt_upper_threshold]
-        
-        total_pi += 2*alts*(depths-alts)*1.0/(depths*(depths-1)+(depths<1.1))
-        total_opportunities += passed_sites
-        
-        num_sites_processed+=1
-        if num_sites_processed%50000==0:
-            sys.stderr.write("%dk sites processed...\n" % (num_sites_processed/1000))   
-            if debug:
-                break
+            
+        for sfs_item in sfs_items:
+            subitems = sfs_item.split(",")
+            D = long(subitems[0])
+            A = long(subitems[1])
+            n = long(subitems[2])
+            reverse_n = float(subitems[3])
+            
+            if D<0.5:
+                continue
     
-    snp_file.close()
+            if (A,D) not in sfs_map[sample]:
+                sfs_map[sample][(D,A)] = [0,0.0]
+                
+            sfs_map[sample][(D,A)][0] += n
+            sfs_map[sample][(D,A)][1] += reverse_n
+            
+            
+    return numpy.array(samples), sfs_map
 
-    return numpy.array(samples), total_pi, total_opportunities
-
-
-def parse_pangenome_species():
-    pangenome_species = []
-    
-    species_list = parse_depth_sorted_species_list()
-    
-    for species_name in species_list:
-    
-        gene_directory = '%sgenes/%s' % (data_directory, species_name)
-        if os.path.isdir(gene_directory):
-            pangenome_species.append(species_name)
-    pangenome_species.append('new_species')       
-    return pangenome_species
+def pangenome_data_exists(species_name):
+   gene_reads_filename =  "%sgenes/%s/genes_reads.txt.bz2" % (data_directory, species_name)
+   return os.path.isfile(gene_reads_filename)
 
 ###############################################################################
 #
@@ -1069,7 +754,10 @@ def parse_pangenome_species():
 # returns (lots of things, see below)
 #
 ###############################################################################
-def parse_pangenome_data(species_name, allowed_samples = [], allowed_genes=[]):
+def parse_pangenome_data(species_name, allowed_samples = [], allowed_genes=[], convert_centroid_names=True, disallowed_genes=[]):
+    
+    if not pangenome_data_exists(species_name):
+        return [], [], [], [], [], []
         
     # Open post-processed MIDAS output
     # Raw read counts
@@ -1084,19 +772,28 @@ def parse_pangenome_data(species_name, allowed_samples = [], allowed_genes=[]):
     gene_summary_file = file("%sgenes/%s/genes_summary.txt" % (data_directory, species_name),"r")
     marker_coverage_map = {}
     gene_summary_file.readline() # header
+    marker_coverage_samples = []
+    marker_coverages = []
     for summary_line in gene_summary_file:
         items = summary_line.split()
         sample = items[0].strip()
         marker_coverage = float(items[5])
-        marker_coverage_map[sample] = marker_coverage
+        marker_coverage_samples.append(sample)
+        marker_coverages.append(marker_coverage)
+
     gene_summary_file.close()
+
+    marker_coverage_samples = parse_merged_sample_names(marker_coverage_samples)
+
+    marker_coverage_map = {sample: marker_coverage for sample,marker_coverage in zip(marker_coverage_samples, marker_coverages)}
     
     # Now read through remaining files
     reads_line = gene_reads_file.readline() # header
     depth_line = gene_depth_file.readline() # header
     presabs_line = gene_presabs_file.readline() # header
     items = presabs_line.split()
-    samples = numpy.array([item.strip() for item in items[1:]])
+    
+    samples = parse_merged_sample_names(items[1:])
     
     # ordered vector of marker coverages (guaranteed to be in same order as samples)
     marker_coverages = numpy.array([marker_coverage_map[sample] for sample in samples])
@@ -1138,6 +835,7 @@ def parse_pangenome_data(species_name, allowed_samples = [], allowed_genes=[]):
             #gene_lengths = gene_reads/(gene_depths+(gene_reads<0.5))
             #print gene_lengths
             
+            # gene is present in at least one individual! 
             gene_presence_matrix.append(gene_presences)
             gene_depth_matrix.append(gene_depths)
             gene_reads_matrix.append(gene_reads)
@@ -1157,15 +855,34 @@ def parse_pangenome_data(species_name, allowed_samples = [], allowed_genes=[]):
     gene_depth_matrix = numpy.array(gene_depth_matrix)
     gene_reads_matrix = numpy.array(gene_reads_matrix)
 
-    # Make sure the centroid names reflect genes on the reference genome
-    #new_gene_names = []
-    #centroid_gene_map = load_centroid_gene_map(species_name)
-    #for gene_name in gene_names:
-    #    new_gene_names.append(centroid_gene_map[gene_name])
+    if convert_centroid_names:
+        new_gene_names = []
+        centroid_gene_map = load_centroid_gene_map(species_name)
+        for gene_name in gene_names:
+            new_gene_names.append(centroid_gene_map[gene_name])
+    else:
+        new_gene_names=gene_names
     
-    # Let's not do this for Morteza's data, since we want to go
-    # back and look at barcodes of specific genes.
-    new_gene_names = gene_names
+    
+    new_gene_names = numpy.array(new_gene_names)
+        
+    # Now weed out disallowed genes if provided
+    disallowed_genes=set(disallowed_genes)
+    allowed_gene_idxs = []
+    for gene_idx in xrange(0,len(new_gene_names)):
+        
+        if new_gene_names[gene_idx] in disallowed_genes:
+            # don't include
+            pass
+        else:
+            allowed_gene_idxs.append(gene_idx)
+    allowed_gene_idxs = numpy.array(allowed_gene_idxs)
+    
+    new_gene_names = new_gene_names[allowed_gene_idxs]
+    gene_presence_matrix = gene_presence_matrix[allowed_gene_idxs,:]
+    gene_depth_matrix = gene_depth_matrix[allowed_gene_idxs,:]
+    gene_reads_matrix = gene_reads_matrix[allowed_gene_idxs,:]
+    
     return desired_samples, new_gene_names, gene_presence_matrix, gene_depth_matrix, marker_coverages, gene_reads_matrix
 
 ###############################################################################
@@ -1175,6 +892,7 @@ def parse_pangenome_data(species_name, allowed_samples = [], allowed_genes=[]):
 # part of metaphlan2 set, etc.
 #
 ###############################################################################
+
 
 ####
 #
@@ -1212,6 +930,70 @@ def load_centroid_gene_map(desired_species_name):
     
     return centroid_gene_map
 
+
+####
+#
+# Returns a map from gene name to (reference corrected centroids)
+#
+###
+def load_gene_centroid_map(desired_species_name):
+    
+    gene_info_file = gzip.open("%span_genomes/%s/gene_info.txt.gz" % (midas_directory, desired_species_name), 'r')
+    
+    gene_info_file.readline() # header
+    
+    gene_centroid_map = {}
+    
+    for line in gene_info_file:
+        
+        items = line.split("\t") 
+        gene_id = items[0].strip()
+        centroid_id = items[3].strip()
+        
+        gene_centroid_map[gene_id] = centroid_id    
+        
+    gene_info_file.close()
+    
+    centroid_new_centroid_map = load_centroid_gene_map(desired_species_name)
+    
+    for gene_id in gene_centroid_map.keys():
+        new_centroid = centroid_new_centroid_map[gene_centroid_map[gene_id]]
+        gene_centroid_map[gene_id] = new_centroid
+        
+    return gene_centroid_map
+
+
+####
+#
+# In this definition we return as a key the centroid and as value a list of ALL genes that are within the 95% clster.
+#
+###
+def load_complete_centroid_gene_map(desired_species_name):
+    
+    gene_info_file = gzip.open("%span_genomes/%s/gene_info.txt.gz" % (midas_directory, desired_species_name), 'r')
+    
+    gene_info_file.readline() # header
+    
+    complete_centroid_gene_map = {}
+    
+    for line in gene_info_file:
+        
+        items = line.split("\t") 
+        gene_id = items[0].strip()
+        centroid_id = items[3].strip()
+        
+        if centroid_id not in complete_centroid_gene_map:
+            complete_centroid_gene_map[centroid_id] = [gene_id]
+        else:
+            complete_centroid_gene_map[centroid_id].append(gene_id)
+            
+        
+    gene_info_file.close()
+    
+    return complete_centroid_gene_map
+
+
+
 ###############################################################################
 #
 # Loads the MIDAS's pangenome (after clustering at X% identity)
@@ -1236,13 +1018,13 @@ def load_pangenome_genes(species_name):
             gene_names.append(gene_name)            
         presabs_line = gene_presabs_file.readline() # header
 
-    # Make sure gene names reflect name of gene on reference genome
     centroid_gene_map = load_centroid_gene_map(species_name)
+
     new_species_names = []
     for gene_name in gene_names:
         new_species_names.append(centroid_gene_map[gene_name])
-    return new_species_names    
-    #return set(gene_names), set(new_species_names)
+        
+    return set(gene_names), set(new_species_names)
 
 
     
@@ -1340,16 +1122,32 @@ def load_marker_genes(desired_species_name, require_in_reference_genome=True):
     return set(marker_genes)
  
  
+def parse_pangenome_species():
+    pangenome_species = []
+    
+    species_list = parse_depth_sorted_species_list()
+    
+    for species_name in species_list:
+    
+        gene_directory = '%sgenes/%s' % (data_directory, species_name)
+        if os.path.isdir(gene_directory):
+            pangenome_species.append(species_name)
+    pangenome_species.append('new_species')       
+    return pangenome_species
+     
 ###############################################################################
 #
 # Loads a subset of "core" genes. 
-# *UNDER CONSTRUCTION*
+# *Deprecated: Use core_gene_utils.parse_core_genes instead
 #
 ###############################################################################   
 def load_core_genes(desired_species_name, min_copynum=0.3, min_prevalence=0.9, min_marker_coverage=20, unique_individuals=True):
 
-    # Two choices: from pangenome or directly from reference genome
-    return load_core_genes_from_pangenome(desired_species_name, min_copynum, min_prevalence, min_marker_coverage, unique_individuals)
+    import core_gene_utils
+    return core_gene_utils.parse_core_genes(desired_species_name)
+    
+    # Old
+    #return load_core_genes_from_pangenome(desired_species_name, min_copynum, min_prevalence, min_marker_coverage, unique_individuals)
 
 ###############################################################################
 #
@@ -1419,7 +1217,27 @@ def parse_subject_sample_time_map(filename=os.path.expanduser("~/ben_nandita_hmp
     return subject_sample_time_map 
 
 
+###################################################################################
+# reformat the subject_sample_time_map so that the samples that have been combined (because of visno replicates) are now in the dictionary instead of old samples that were merged into one.
+##################################################################
 
+def collapse_visno_reps_subject_sample_time_map(subject_sample_time_map):
+
+    new_subject_sample_time_map={}
+    for subject in subject_sample_time_map:
+        new_subject_sample_time_map[subject]={}
+        for visno in subject_sample_time_map[subject].keys(): # loop over samples
+            new_subject_sample_time_map[subject][visno]=[]
+            if len(subject_sample_time_map[subject][visno]) >1:
+                sample_name=subject_sample_time_map[subject][visno][0][0] + 'c'
+                day=subject_sample_time_map[subject][visno][0][1]
+            else:
+                sample_name=subject_sample_time_map[subject][visno][0][0]
+                day =subject_sample_time_map[subject][visno][0][1]
+
+            new_subject_sample_time_map[subject][visno].append([sample_name,day])
+
+    return new_subject_sample_time_map
 ########################################################################################
 #
 # Prunes time data for HMP samples 
@@ -1584,39 +1402,98 @@ def representative_genome_id(desired_species_name):
             return genome_id_to_return
 
 
-#########################################################################################
+##########################################################
 #
-# Read in the Kegg info for a given speceis
+# Get a list of all genome_ids corresponding to reference genomes for a given species in the midas_db. 
 #
-#########################################################################################
-
-def load_kegg_annotations(gene_names):
+#########################################################
+def get_ref_genome_ids(desired_species_name):
     
-    # dictionary to store the kegg ids (gene_id -> [[kegg_id, description]])
-    kegg_ids={}
+    genome_ids=[]
+    genome_info = open("%sgenome_info.txt" % midas_directory)
+    genome_info.readline() #header
+    for line in genome_info:
+        items = line.split("\t")
+        genome_id = items[0].strip()
+        species_id=items[5].strip() 
+        if desired_species_name == species_id:
+            genome_ids.append(genome_id)
+    return genome_ids
+
+
+##########################################################
+#
+# Return a dictionary of all genome IDs and thier species id
+#
+#########################################################
+def genome_ids_dictionary():
     
+    genome_ids={}
+    genome_info = open("%sgenome_info.txt" % midas_directory)
+    genome_info.readline() #header
+    for line in genome_info:
+        items = line.split("\t")
+        genome_id = items[0].strip()
+        species_id=items[5].strip() 
+        rep_genome=items[2]
+        genome_ids[genome_id]=[species_id, rep_genome]
+    return genome_ids
 
-    genomes_visited=[]
-    for i in range(0, len(gene_names)):
-        genome_id='.'.join(gene_names[i].split('.')[0:2])
-        if genome_id not in genomes_visited:
-            genomes_visited.append(genome_id)
-            file= bz2.BZ2File("%skegg/%s.kegg.txt.bz2" % (data_directory, genome_id),"r")
-            file.readline() #header  
-            file.readline() #blank line
-            for line in file:
-                if line.strip() != "":
-                    items = line.split("\t")
-                    gene_name=items[0].strip().split('|')[1]
-                    kegg_ids[gene_name]=[]
-                    kegg_pathway_tmp=items[1].strip().split(';')
-                    if len(kegg_pathway_tmp)>0 and kegg_pathway_tmp[0] !='':
-                        for i in range(0, len(kegg_pathway_tmp)):
-                            kegg_ids[gene_name].append(kegg_pathway_tmp[i].split('|'))
-                    elif kegg_pathway_tmp[0] =='':
-                        kegg_ids[gene_name].append(['',''])
-    return kegg_ids
 
+
+##########################################################
+#
+# parse the intermediate files of MIDAS to obtain CNV counts for 99% gene centroids
+#
+#########################################################
+def parse_99_percent_genes(desired_species_name,samples, allowed_genes=[]):
+
+    # dictionary to store all the data (key=sampleID, value={gene, numreads})
+    data={}
+
+    for sample in samples:
+        if sample[-1]=='c':
+            pollard_dir='/pollard/home/ngarud/BenNanditaProject/MIDAS_intermediate_files_hmp/MIDAS_1.2.2_samples_combined_output/'+sample+'/genes/output'
+        else:
+            pollard_dir='/pollard/home/ngarud/BenNanditaProject/MIDAS_intermediate_files_hmp/MIDAS_1.2.2_output/'+sample+'/genes/output'
+        data[sample]={}
+
+        file = gzip.open("%s/%s.genes.gz" % (pollard_dir, desired_species_name), 'r')
+        file.readline() #header
+        for line in file:
+            items = line.split()
+            gene = items[0]
+            count_reads= items[1]            
+            if gene in allowed_genes:
+                data[sample][gene]=int(count_reads)
+           
+#    # create a numpy array with the data
+    data_numpy_array_dict={}
+    data_numpy_array=numpy.asarray([])
+    for gene in allowed_genes:
+        
+        data_numpy_array_dict[gene]=[]
+        #for sample in data.keys(): old version: may not preserve order of samples
+        for sample in samples:
+            if gene in data[sample]:
+                data_numpy_array_dict[gene].append(data[sample][gene])
+            else:
+                data_numpy_array_dict[gene].append(0)
+        data_numpy_array_dict[gene]=numpy.asarray(data_numpy_array_dict[gene])
+
+    #consolidate into a single ref genome esp. if multiple genes are in a single ref. 
+    ref_genome_dict={}
+    for gene in allowed_genes:
+        #modify the gene name to just have the refgenome
+        ref_genome='.'.join(gene.split('.')[0:2])
+        if ref_genome not in ref_genome_dict:
+            ref_genome_dict[ref_genome]=data_numpy_array_dict[gene]
+        else:
+            ref_genome_dict[ref_genome]+=data_numpy_array_dict[gene]
+
+    return ref_genome_dict
+                
+                
 
 ##########################################################
 #
@@ -1624,7 +1501,7 @@ def load_kegg_annotations(gene_names):
 #
 #########################################################
 
-def parse_intermediate_species_file(inFN):
+def parse_intermediate_species_file(sample_id, inFN):
     inFile=open(inFN,'r')
 
     species_list=[]
@@ -1639,6 +1516,24 @@ def parse_intermediate_species_file(inFN):
     return set(species_list)
 
 
+#########################################
+# 
+# Read in centroids fasta sequences
+#
+#########################################
+def load_centroid_fasta(species_name):
+    centroid_fastas={} # key=gene, value=sequence
+    centroid_file = gzip.open("%span_genomes/%s/centroids.ffn.gz" % (midas_directory, species_name), 'r')
+    for line in centroid_file:
+        line=line.strip()
+        if line[0]=='>':
+            gene_name=line[1:len(line)]
+            centroid_fastas[gene_name]=''
+        else:
+            centroid_fastas[gene_name]+= line
+
+    return centroid_fastas
+    
 
 
 #######################    

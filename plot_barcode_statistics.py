@@ -89,7 +89,9 @@ id_longgene_map = []
 # Run this algorithm separately for each sample. 
 # BG: should we combine across samples? Pros: more data. Cons: could have switching across species between timepoints. 
 desired_samples = parse_timecourse_data.morteza_samples
-#desired_samples = [parse_timecourse_data.highcoverage_start_1]
+desired_samples = parse_timecourse_data.highcoverage_samples
+desired_samples = [parse_timecourse_data.highcoverage_start_1, parse_timecourse_data.highcoverage_start_2, parse_timecourse_data.highcoverage_end]
+
 for sample_name in desired_samples:
 
     sys.stderr.write("Processing sample %s...\n" % sample_name)

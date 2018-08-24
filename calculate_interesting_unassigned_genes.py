@@ -10,8 +10,10 @@ sample_time_map = parse_timecourse_data.parse_sample_time_map()
     
 species_coverage_matrix, samples, species = parse_midas_data.parse_global_marker_gene_coverages()
 
-species_times, species_time_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, samples)
-desired_samples = numpy.array(samples)[species_time_idxs]
+desired_samples = parse_timecourse_data.highcoverage_samples
+
+species_times, species_time_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, desired_samples)
+desired_samples = numpy.array(desired_samples)[species_time_idxs]
 
 species_coverage_matrix = species_coverage_matrix[:,species_time_idxs]
 
@@ -29,7 +31,7 @@ species_abundance_matrix = species_coverage_matrix * coverage_to_abundance_facto
 for species_name in ['new_species']:
         
     sys.stderr.write("Loading pangenome data for %s...\n" % species_name)
-    gene_samples, gene_names, gene_presence_matrix, gene_depth_matrix, marker_coverages, gene_reads_matrix =     parse_midas_data.parse_pangenome_data(species_name)
+    gene_samples, gene_names, gene_presence_matrix, gene_depth_matrix, marker_coverages, gene_reads_matrix = parse_midas_data.parse_pangenome_data(species_name, allowed_samples=desired_samples)
     sys.stderr.write("Done!\n")
 
     species_times, species_time_idxs = parse_timecourse_data.calculate_timecourse_idxs(sample_time_map, gene_samples)
@@ -63,22 +65,28 @@ for species_name in ['new_species']:
     antibiotic_abundances = gene_abundances[:,antibiotic_idxs].mean(axis=1)
     final_abundances = gene_abundances[:,final_idxs].mean(axis=1)
     
-    hrv_gene_idxs = numpy.logical_and(initial_abundances < 0.1*hrv_abundances, hrv_abundances>1e-03)
+    highfreq_gene_idxs = ((gene_abundances>=1e-02).sum(axis=1)>2)
+
+    hrv_gene_idxs = numpy.logical_and(initial_abundances < 0.1*hrv_abundances, hrv_abundances>1e-02)
      
-    lyme_gene_idxs = numpy.logical_and(initial_abundances < 0.1*lyme_abundances, lyme_abundances>1e-03)
+    lyme_gene_idxs = numpy.logical_and(initial_abundances < 0.1*lyme_abundances, lyme_abundances>1e-02)
     
-    antibiotic_gene_idxs = numpy.logical_and(initial_abundances < 0.1*antibiotic_abundances, antibiotic_abundances>1e-03)
+    antibiotic_gene_idxs = numpy.logical_and(initial_abundances < 0.1*antibiotic_abundances, antibiotic_abundances>1e-02)
     
-    final_gene_idxs = numpy.logical_and(initial_abundances < 0.1*final_abundances, final_abundances>1e-03)
+    final_gene_idxs = numpy.logical_and(initial_abundances < 0.1*final_abundances, final_abundances>1e-02)
     
     #any_gene_idxs = final_gene_idxs
-    any_gene_idxs = antibiotic_gene_idxs
+    #any_gene_idxs = antibiotic_gene_idxs
+    any_gene_idxs = numpy.logical_or(antibiotic_gene_idxs, final_gene_idxs)
+    #any_gene_idxs = highfreq_gene_idxs
     #any_gene_idxs = (hrv_gene_idxs+lyme_gene_idxs+antibiotic_gene_idxs+final_gene_idxs)>0
     
+    sys.stderr.write("High-freq genes: %d\n" % highfreq_gene_idxs.sum())
     sys.stderr.write("HRV genes: %d\n" % hrv_gene_idxs.sum())
     sys.stderr.write("Lyme genes: %d\n" % lyme_gene_idxs.sum())
     sys.stderr.write("Antibiotic genes: %d\n" % antibiotic_gene_idxs.sum())
     sys.stderr.write("Final genes: %d\n" % final_gene_idxs.sum())
+    sys.stderr.write("Both antibiotic and final: %d\n" % (antibiotic_gene_idxs*final_gene_idxs).sum())
     sys.stderr.write("Any genes: %d\n" % any_gene_idxs.sum())
     
     desired_gene_names = numpy.array(gene_names)[any_gene_idxs]

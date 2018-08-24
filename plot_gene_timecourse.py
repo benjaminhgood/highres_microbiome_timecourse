@@ -120,6 +120,15 @@ for species_idx in xrange(0,len(species_names)):
     marker_coverages = marker_coverages[marker_coverage_idxs]
     gene_copynum_matrix = gene_copynum_matrix[:,marker_coverage_idxs]
     
+    special_idx = (gene_names=='1499682.3.peg.802')
+    print gene_copynum_matrix[special_idx]
+    special_idx = (gene_names=='1120974.3.peg.19')
+    print gene_copynum_matrix[special_idx]
+    special_idx = (gene_names=='1120974.3.peg.1084')
+    print gene_copynum_matrix[special_idx]
+    
+    
+    
     gene_idxs = ((gene_copynum_matrix>0.3).sum(axis=1)>0)
     gene_copynum_matrix = gene_copynum_matrix[gene_idxs,:]
     gene_names = gene_names[gene_idxs] 
@@ -252,7 +261,7 @@ if output_filename:
         output_file.write(output_items[output_key])
         output_file.write("\n")                     
     output_file.close()  
- 
+
 sys.stderr.write("Saving final PNG image...\t")
 fig.savefig(filename, bbox_inches='tight', dpi=300, transparent=True)
 pylab.close(fig)

@@ -10,7 +10,7 @@ def calculate_read_count_matrix(allele_counts_map, passed_sites_map, allowed_var
     depth_matrix = []
     snp_infos = []
      
-    for gene_name in allowed_genes:
+    for gene_name in sorted(allowed_genes):
     
         for variant_type in allele_counts_map[gene_name].keys():
             

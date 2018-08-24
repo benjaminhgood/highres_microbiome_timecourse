@@ -15,42 +15,64 @@ highcoverage_start_2 = "6038.1"
 highcoverage_hrv = "1021"
 highcoverage_lyme = "1022.1"
 highcoverage_antibiotic = "1014.2"
+highcoverage_postantibiotic = "4023"
 highcoverage_end = "6041"
 
 morteza_samples = ['6037',
            '6037.2',
            '6037.3',
-           '6038.1',
-           '1021',
+           '6038.1', # hc (day 26)
+           '1021', # hc, hrv, day 36
            '1022',
-           '1022.1',
+           '1022.1', # lyme diagnosed. day 47
            '1023',
-           '1014.2',
+           '1014.2', # antibiotic
            '1025',
-           '4021A',
+           '4021A', # hc (5 days post)
            '4021.1A',
            '4022',
-           '4023', #4023.1 absent
-           '4024.1', #4025 absent
+           '4023', # hc (11 days post) #4023.1 absent #4025 absent
+           '4024.1', 
            '4025.4',
            '4026',
            '4026.2',
-           '6041']
+           '6041'] # final (73 days post)
            
-highcoverage_samples = ['6037',
-                        '6038.1',
-                        '1021',
-                        '1022.1',
-                        '1014.2',
-                        '4021A',
-                        '4023',
-                        '4025',
-                        '6041']
+highcoverage_samples = ['6037', # start 1, day 1
+                        '6038.1', # start 2, day 26
+                        '1021', # hrv, day 36
+                        '1022.1', # lyme, day 47
+                        '1014.2', # antibiotic (2 days before finishing), day 68
+                        '4021A', # diagnostic 1 (5 days post), day 73
+                        '4023', # diagnostic 2 (11 days post), day 81
+                        '6041'] # final (84 days post antibiotic), day 154 (day 73) 
+
+alistipes_onderdonkii_gene_gain_samples = ['1014.2', '1025', '4021A', '4021.1A', '4022', '4023']
                         
 antibiotics_color = '#bdd7e7'
 lyme_color = '#eff3ff'
 
-
+# total # of reads in the raw fastq files. 
+fastq_coverage_map = {} # dividing by 4 because 4 lines per read
+fastq_coverage_map['1014.2'] = 1228272236/4
+fastq_coverage_map['1021'] = 1276652816/4
+fastq_coverage_map['1022'] = 262493376/4
+fastq_coverage_map['1022.1'] = 2538752928/4
+fastq_coverage_map['1023'] = 217127600/4
+fastq_coverage_map['1025'] = 462883992/4
+fastq_coverage_map['4021.1A'] = 379311296/4
+fastq_coverage_map['4021A'] = 2365861024/4
+fastq_coverage_map['4022'] = 328461556/4
+fastq_coverage_map['4023'] = 1191171684/4
+fastq_coverage_map['4024.1'] = 268695392/4
+fastq_coverage_map['4025.4'] = 639037900/4
+fastq_coverage_map['4026'] = 582648592/4
+fastq_coverage_map['4026.2'] = 323633936/4
+fastq_coverage_map['6037'] = 1210346620/4
+fastq_coverage_map['6037.2'] = 1208179808/4
+fastq_coverage_map['6037.3'] = 130772348/4
+fastq_coverage_map['6038.1'] = 1228380944/4
+fastq_coverage_map['6041'] = 2354297232/4
 
 
 
@@ -138,6 +160,20 @@ def parse_sample_time_map():
     
     file.close()
     return sample_time_map
+    
+def parse_sample_order_map(): 
+
+    sample_time_map = parse_sample_time_map()
+    samples = list(sample_time_map.keys())
+    
+    sorted_idxs = range(0,len(samples))
+    sorted_idxs = list(sorted(sorted_idxs, key = lambda idx: sample_time_map[samples[idx]]))
+    
+    sample_order_map = {}
+    for idx in xrange(0,len(sorted_idxs)):
+        sample_order_map[samples[sorted_idxs[idx]]] = 'patient0', idx
+        
+    return sample_order_map
 
     
 def calculate_timecourse_idxs(sample_time_map, desired_samples, min_time=1):
@@ -193,5 +229,66 @@ def load_core_timecourse_genes(desired_species_name, min_copynum=0.3, min_preval
         reference_gene_idxs
 
     return set(gene_names[core_gene_idxs])
-                
     
+    
+def get_initial_antibiotic_final_idxs(samples):
+    samples = list(samples)
+    if highcoverage_start_2 in samples:
+        initial_idx = samples.index(highcoverage_start_2)
+    elif highcoverage_start_1 in samples:
+        initial_idx = samples.index(highcoverage_start_1)
+    elif highcoverage_lyme in samples:
+        initial_idx = samples.index(highcoverage_lyme)
+    else:
+        initial_idx = -1
+        
+    if highcoverage_antibiotic in samples:
+        antibiotic_idx = samples.index(highcoverage_antibiotic)
+    elif highcoverage_postantibiotic in samples:
+        antibiotic_idx = samples.index(highcoverage_postantibiotic)
+    else:
+        antibiotic_idx = -1
+        
+    if highcoverage_end in samples:
+        final_idx = samples.index(highcoverage_end)
+    else:
+        final_idx = -1
+        
+    return initial_idx, antibiotic_idx, final_idx
+        
+           
+def get_initial_idxs(samples):
+
+    sample_time_map = parse_sample_time_map()
+    ts = numpy.array([sample_time_map[sample] for sample in samples])
+    
+    initial_idxs = (ts<28)
+    if initial_idxs.sum() > 0:
+        return numpy.nonzero(initial_idxs)[0]
+    else:
+        return []
+
+def get_antibiotic_idxs(samples):     
+    
+    
+    sample_time_map = parse_sample_time_map()
+    ts = numpy.array([sample_time_map[sample] for sample in samples])
+    
+    initial_idxs = (ts>66)*(ts<83)
+    
+    if initial_idxs.sum() > 0:
+        return numpy.nonzero(initial_idxs)[0]
+    else:
+        return []
+
+def get_final_idxs(samples):
+    
+    sample_time_map = parse_sample_time_map()
+    ts = numpy.array([sample_time_map[sample] for sample in samples])
+    
+    initial_idxs = (ts>118)
+    
+    if initial_idxs.sum() > 0:
+        return numpy.nonzero(initial_idxs)[0]
+    else:
+        return []
